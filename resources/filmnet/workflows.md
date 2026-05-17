@@ -1,5 +1,67 @@
 # FilmNet Workflows
 
+## Task Persistence Rule
+
+When the assistant creates or reuses a Task ID, it MUST persist it in:
+`state/active-tasks.md`
+
+If `state/active-tasks.md` is missing, deleted, or empty:
+1. Recreate the file.
+2. Add `# Active Tasks` as the title.
+3. Save the new task there.
+
+A Task ID shown to Farzan is invalid unless it is also saved in `state/active-tasks.md`.
+
+For every message draft task, save:
+- Task ID
+- Title
+- Status
+- Recipient
+- Channel
+- Topic
+- Draft summary
+- Next step
+- Last updated date
+
+## Incident Follow-up Message Rule
+
+For incident/payment/service issue follow-up messages, the draft MUST ask about:
+1. root cause
+2. current status / whether resolved
+3. user/business impact
+4. next prevention action such as fix, monitoring, or alert
+5. other involved owner if relevant
+
+If Farzan asks for an incident/payment/service issue follow-up draft, do not ask a generic preflight questionnaire before drafting. Use the standard incident follow-up questions above unless Farzan asks for a different style.
+
+For the request "Draft a Telegram message to Masih about payment service issue. Do not send.", reuse the active payment-service task if it exists and produce the Persian draft immediately.
+
+## Persian Name/Tone Rule
+
+For internal Persian Telegram messages:
+- Do not write "مستر".
+- Do not mix awkward English name style like "Masih" inside Persian greeting.
+- Prefer:
+  "مسیح جان سلام،"
+- Use friendly professional tone.
+- Keep the message clear and direct.
+
+## Draft Response Format Rule
+
+Every draft response must include:
+Task: <Task ID>
+Title: <Task title>
+Status: <status>
+
+Recipient:
+Channel:
+
+Draft:
+<message>
+
+Approval:
+Should I keep this draft, edit it, or prepare it for sending?
+
 ## Production Incident Follow-Up
 
 Use this workflow when there is a production issue, outage, major bug, CDN problem, playback issue, payment issue, or customer-impacting incident.

@@ -4,16 +4,16 @@ Use this file as the simple source of truth for FilmNet services.
 
 Add services using this format:
 
-## Service Name
+## Payment
 
-- Owner:
-- Team:
-- Criticality:
+- Owner: Kamran Abdi
+- Team: Backend
+- Criticality: High
 - Notes:
 
-## Service Template
+## CDN Manager
 
-- Owner:
-- Team:
-- Criticality:
+- Owner: Mohammad CDN
+- Team: Backend
+- Criticality: High
 - Notes:
