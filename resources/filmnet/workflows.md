@@ -38,15 +38,27 @@ Task record fields:
 Use this workflow when Farzan says `status`, `show active tasks`, or asks what is pending.
 
 Steps:
-1. Read `state/active-tasks.md`.
+1. Read `state/active-tasks.md` for active / waiting / pending work.
 2. Show all active / waiting / pending tasks first, with Task ID, title, status, and next step.
-3. For completed tasks, do not show the full historical completed list.
-4. Get the current local date.
-5. Show completed tasks whose `Last updated date` matches the current local date.
-6. If no completed task matches the current local date, show only the last 5 completed tasks, ordered newest first.
-7. Label the completed section as either:
+3. Read `state/history-task.md` only for completed task history.
+4. For completed tasks, do not show the full historical completed list.
+5. Get the current local date.
+6. Show completed tasks whose `Last updated date` matches the current local date.
+7. If no completed task matches the current local date, show only the last 5 completed tasks, ordered newest first.
+8. Label the completed section as either:
    - `Completed today`
    - `Recent completed tasks (last 5 because none completed today)`
+
+## 3.1 Completed Task Archive Workflow
+
+Purpose: keep `state/active-tasks.md` small and cheap to read.
+
+Rules:
+1. `state/active-tasks.md` should contain only active, waiting, pending, draft, and in-progress tasks.
+2. `state/history-task.md` stores completed tasks.
+3. Run `python3 state/archive-completed-tasks.py` daily, or immediately after marking tasks completed.
+4. Do not delete completed task history; move it to the history file.
+5. For status reports, consult `history-task.md` only for today's completed tasks or the last 5 recent completions.
 
 ## 4. Message Draft Workflow
 

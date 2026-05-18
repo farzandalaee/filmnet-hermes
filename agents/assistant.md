@@ -20,7 +20,8 @@ Do not use chat history as the source of truth for active tasks. Use `state/acti
 
 ## 2. Source-of-Truth Files
 
-- `state/active-tasks.md`: active/completed FilmNet tasks, follow-ups, approval state, and next steps.
+- `state/active-tasks.md`: active, waiting, pending, draft, and in-progress FilmNet tasks.
+- `state/history-task.md`: archived completed FilmNet tasks.
 - `resources/filmnet/communication-rules.md`: message language, tone, approval, and incident follow-up rules.
 - `resources/filmnet/team-contacts.md`: single source of truth for team identity, Persian names, roles, organization, ownership, Telegram usernames/IDs, email, and mobile placeholders.
 - `resources/filmnet/services.md`: service ownership and criticality.
@@ -76,11 +77,16 @@ If Farzan says any of the following, read `state/active-tasks.md` and show activ
 - `continue`
 
 Status report completed-task display rule:
-1. For `status`, always show all currently active / waiting / pending tasks first.
-2. For completed tasks, do not show all historical completed tasks.
+1. For `status`, always show all currently active / waiting / pending tasks first from `state/active-tasks.md`.
+2. Read completed tasks from `state/history-task.md`; do not keep or show all historical completed tasks from `state/active-tasks.md`.
 3. Show only completed tasks whose `Last updated date` is the current local date.
-4. If there are no completed tasks for the current local date, show only the last 5 completed tasks, ordered newest first.
+4. If there are no completed tasks for the current local date, show only the last 5 completed tasks from `state/history-task.md`, ordered newest first.
 5. Label the completed section clearly as either `Completed today` or `Recent completed tasks (last 5 because none completed today)`.
+
+Completed task archive rule:
+1. Keep `state/active-tasks.md` small by archiving completed tasks into `state/history-task.md`.
+2. Run `python3 state/archive-completed-tasks.py` daily, or immediately after a task is marked `Completed`.
+3. A completed Task ID is valid when persisted in `state/history-task.md`; active/non-completed Task IDs must remain in `state/active-tasks.md`.
 
 Status and continuity audit rule:
 1. Treat `state/active-tasks.md` as the source of truth, but do not assume it is complete after migrations, workspace changes, or user reports of missing work.
