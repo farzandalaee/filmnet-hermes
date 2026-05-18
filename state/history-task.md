@@ -101,3 +101,13 @@ Completed FilmNet tasks archived from `state/active-tasks.md`.
 - Draft summary: Created quiet wrapper `/Users/farzan/.hermes/profiles/filmnet/scripts/archive-filmnet-completed-tasks.sh` and cron job `bc38ba39c5e3` scheduled for `5 0 * * *`.
 - Next step: Cron job will run daily at 00:05 local time and only deliver output when tasks were archived or if an error occurs.
 - Last updated date: 2026-05-19
+
+## FN-2026-0519-005
+- Title: Analyze FilmNet Hermes agent token efficiency for jobs
+- Status: Completed
+- Recipient: N/A
+- Channel: N/A
+- Topic: Review FilmNet Hermes agent/profile/task-state/skills/cron setup for token overhead and identify optimization opportunities, especially for scheduled jobs.
+- Draft summary: Audit completed and saved to `references/filmnet-orchestrator/token-efficiency-audit-2026-05-19.md`; daily archive cron is optimized with `no_agent: true`, while interactive sessions are moderate-to-heavy mainly due to toolsets, skill catalog, and duplicated FilmNet rules.
+- Next step: If Farzan approves, slim `filmnet-orchestrator` and `agents/assistant.md`, and optionally create a lean `filmnet-lite` profile.
+- Last updated date: 2026-05-19
