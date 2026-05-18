@@ -137,3 +137,13 @@
   فرزان
 - Next step: Confirm preferred channel and whether greeting/name is correct, then approve/edit draft.
 - Last updated date: 2026-05-18
+
+## FN-2026-0519-001
+- Title: Promote FilmNet2 Hermes profile to FilmNet
+- Status: Completed
+- Recipient: N/A
+- Channel: N/A
+- Topic: Rename the previous `filmnet` Hermes profile to `filmnet-old`, rename the stronger `filmnet2` profile to `filmnet`, and set `filmnet` as the sticky default profile.
+- Draft summary: N/A
+- Next step: Start future FilmNet sessions with `filmnet` or `hermes -p filmnet`. The previous profile is preserved as `filmnet-old`.
+- Last updated date: 2026-05-19
