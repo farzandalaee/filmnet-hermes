@@ -143,7 +143,17 @@
 - Status: Completed
 - Recipient: N/A
 - Channel: N/A
-- Topic: Rename the previous `filmnet` Hermes profile to `filmnet-old`, rename the stronger `filmnet2` profile to `filmnet`, and set `filmnet` as the sticky default profile.
+- Topic: Rename the previous `filmnet` Hermes profile to `filmnet-old`, rename the stronger `filmnet2` profile to `filmnet`, and set `filmnet` as the sticky/default profile.
 - Draft summary: N/A
-- Next step: Start future FilmNet sessions with `filmnet` or `hermes -p filmnet`. The previous profile is preserved as `filmnet-old`.
+- Next step: Use `/Users/farzan/filmnet-hermes` as the current FilmNet workspace and `filmnet` / `hermes -p filmnet` for future sessions. The previous profile is preserved as `filmnet-old`.
+- Last updated date: 2026-05-19
+
+## FN-2026-0519-002
+- Title: Update FilmNet status report completed-task display rule
+- Status: Completed
+- Recipient: N/A
+- Channel: N/A
+- Topic: Change status reports so completed tasks show only current-day completions, or the last 5 completed tasks if none were completed today.
+- Draft summary: Updated `agents/assistant.md`, `resources/filmnet/workflows.md`, and the `filmnet-orchestrator` skill to avoid long historical completed-task lists in status reports.
+- Next step: Future `status` responses should show active/waiting/pending tasks first, then completed tasks for today's local date; if none today, show only the last 5 completed tasks.
 - Last updated date: 2026-05-19

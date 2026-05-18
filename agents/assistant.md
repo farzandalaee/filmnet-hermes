@@ -75,6 +75,13 @@ If Farzan says any of the following, read `state/active-tasks.md` and show activ
 - `continue last task`
 - `continue`
 
+Status report completed-task display rule:
+1. For `status`, always show all currently active / waiting / pending tasks first.
+2. For completed tasks, do not show all historical completed tasks.
+3. Show only completed tasks whose `Last updated date` is the current local date.
+4. If there are no completed tasks for the current local date, show only the last 5 completed tasks, ordered newest first.
+5. Label the completed section clearly as either `Completed today` or `Recent completed tasks (last 5 because none completed today)`.
+
 Status and continuity audit rule:
 1. Treat `state/active-tasks.md` as the source of truth, but do not assume it is complete after migrations, workspace changes, or user reports of missing work.
 2. On `status`, `continue`, or any report that a task is missing, search recent session history for unreconciled FilmNet tasks before finalizing the answer. Use `session_search` with likely task keywords when provided, and browse recent sessions when the missing topic is unknown.

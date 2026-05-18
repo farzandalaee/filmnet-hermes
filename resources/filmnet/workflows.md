@@ -33,7 +33,22 @@ Task record fields:
 - Next step
 - Last updated date
 
-## 3. Message Draft Workflow
+## 3. Status Report Workflow
+
+Use this workflow when Farzan says `status`, `show active tasks`, or asks what is pending.
+
+Steps:
+1. Read `state/active-tasks.md`.
+2. Show all active / waiting / pending tasks first, with Task ID, title, status, and next step.
+3. For completed tasks, do not show the full historical completed list.
+4. Get the current local date.
+5. Show completed tasks whose `Last updated date` matches the current local date.
+6. If no completed task matches the current local date, show only the last 5 completed tasks, ordered newest first.
+7. Label the completed section as either:
+   - `Completed today`
+   - `Recent completed tasks (last 5 because none completed today)`
+
+## 4. Message Draft Workflow
 
 Use this workflow before sending or forwarding any external or team message.
 
@@ -61,7 +76,7 @@ Draft:
 Approval: Should I keep this draft, edit it, or prepare it for sending?
 ```
 
-## 4. Production Incident Follow-Up Workflow
+## 5. Production Incident Follow-Up Workflow
 
 Use this workflow for production issues, outages, major bugs, CDN problems, playback issues, payment issues, or customer-impacting incidents.
 
@@ -87,7 +102,7 @@ The follow-up draft must ask about:
 
 Do not ask a generic preflight questionnaire before drafting a standard incident follow-up.
 
-## 5. Product Request Workflow
+## 6. Product Request Workflow
 
 Use this workflow when Farzan wants to define, clarify, prioritize, or follow up on a product idea or request.
 
@@ -103,7 +118,7 @@ Steps:
 4. Draft a short requirement or message for the relevant team.
 5. Ask Farzan to approve or edit the draft before sharing.
 
-## 6. Documentation Update Workflow
+## 7. Documentation Update Workflow
 
 Use this workflow when new FilmNet knowledge should become source of truth.
 
