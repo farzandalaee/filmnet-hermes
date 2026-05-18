@@ -27,16 +27,6 @@ Do not ask a generic preflight questionnaire before drafting a standard incident
 
 Do not invent incident facts while drafting. Unless Farzan provided them, do not claim a previous message is still open, users/business are currently impacted, the issue is urgent, or the service is fixed/still broken.
 
-## Persian Name/Tone Rule
-
-For internal Persian Telegram messages:
-
-- Do not write "مستر".
-- Do not mix awkward English name style like "Masih" inside Persian greeting.
-- Use friendly professional tone.
-- Keep the message clear and direct.
-- Avoid awkward or incorrect wording such as "رشته شده".
-
 ## Draft Response Format Rule
 
 Every draft response must include Task ID, title, status, recipient, channel, draft text, and approval question.
