@@ -1,32 +1,98 @@
 # FilmNet Communication Rules
 
-- Internal FilmNet Telegram drafts MUST be Persian/Farsi by default.
-- Tone should be respectful, direct, and not too long.
-- For team leads, use friendly professional tone.
-- Always draft first and ask Farzan before sending.
-- For incident and bug follow-up, ask root cause, status, impact, and prevention.
-- Avoid exposing sensitive technical details in unnecessary places.
+Use this file before drafting any internal FilmNet message.
 
-## Task Persistence Rule
+## Default Language
 
-- When a Task ID is created or reused, it MUST be saved in `state/active-tasks.md`.
-- A Task ID shown to Farzan is invalid unless it is also saved in `state/active-tasks.md`.
-- For every message draft task, save Task ID, title, status, recipient, channel, topic, draft summary, next step, and last updated date.
+Internal FilmNet communication drafts must be Persian/Farsi by default, even if Farzan asks in English or Finglish.
 
-## Incident Follow-up Message Rule
+This applies to:
+- Telegram messages
+- Slack messages
+- internal email drafts
+- follow-up messages to team members
+- incident follow-up messages
 
-For incident/payment/service issue follow-up messages, the draft MUST ask about:
+Use English only if Farzan explicitly says:
+- `write in English`
+- `English version`
+- `send in English`
+
+## Recipient Identity
+
+Use `resources/filmnet/team-contacts.md` as the single source of truth for:
+- recipient identity
+- `name-fa` and `family-fa`
+- role and organization
+- ownership/domain area
+- Telegram username and Telegram ID
+- email and mobile placeholders
+
+For Persian greetings, use `name-fa` when available.
+
+## Persian Greeting and Tone
+
+Greeting line:
+- Use only hi + first name.
+- Preferred: `سلام [name-fa]`
+- Do not include job title, department, role, or extra context in the greeting.
+- Do not mix English/transliterated names into Persian greetings.
+- Do not write `مستر`.
+
+Tone:
+- respectful
+- friendly professional
+- direct
+- concise
+- not too formal unless Farzan asks
+
+## Approval Rule
+
+Do not send messages automatically.
+
+Always:
+1. Draft the message.
+2. Show it to Farzan.
+3. Ask whether to keep, edit, or prepare it for sending.
+
+## Draft Response Format
+
+Every draft response must include:
+
+```text
+Task: <Task ID>
+Title: <Task title>
+Status: Draft waiting for Farzan approval
+Recipient: <recipient>
+Channel: <Telegram/Slack/Email/etc>
+
+Draft:
+<message>
+
+Approval: Should I keep this draft, edit it, or prepare it for sending?
+```
+
+## Incident Follow-Up Messages
+
+For incident, bug, payment, CDN, playback, service, or customer-impacting issues, the draft must ask about:
 
 1. root cause
-2. current status / whether resolved
+2. current status and whether it is resolved
 3. user/business impact
 4. next prevention action such as fix, monitoring, or alert
 5. other involved owner if relevant
 
-Do not ask a generic preflight questionnaire before drafting a standard incident/payment/service issue follow-up message. Draft first using the required incident follow-up questions, then ask Farzan for approval or edits.
+Do not ask a generic preflight questionnaire before drafting a standard incident follow-up.
 
-Do not invent incident facts while drafting. Unless Farzan provided them, do not claim a previous message is still open, users/business are currently impacted, the issue is urgent, or the service is fixed/still broken.
+Do not invent incident facts. Unless Farzan provided them, do not claim:
+- the issue is still open
+- the issue is resolved
+- users/business are impacted
+- the issue is urgent
+- a specific service is fixed or broken
 
-## Draft Response Format Rule
+## Sensitive Information
 
-Every draft response must include Task ID, title, status, recipient, channel, draft text, and approval question.
+Avoid exposing sensitive technical details unless needed.
+Do not mask mobile numbers in `team-contacts.md`; full mobile numbers are required for SMS/call communication agents.
+If the full mobile number is not known, use `[full mobile to be filled]` rather than a partially masked number.

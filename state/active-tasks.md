@@ -19,3 +19,23 @@
 - Draft summary: N/A
 - Next step: Use `name-fa` for Persian greeting lines in internal message drafts.
 - Last updated date: 2026-05-18
+
+## FN-2026-0518-003
+- Title: Review and optimize FilmNet Hermes workspace instructions
+- Status: Completed
+- Recipient: N/A
+- Channel: N/A
+- Topic: Review `/Users/farzan/filmnet-hermes2` as a Hermes Agent expert/developer and update instruction/resource files to be easy for Hermes agents to read and follow.
+- Draft summary: N/A
+- Next step: Use `AGENTS.md`, `agents/assistant.md`, and `resources/filmnet/` as the stable instruction set for future FilmNet Hermes sessions.
+- Last updated date: 2026-05-18
+
+## FN-2026-0518-004
+- Title: Update mobile number storage rule for communication agents
+- Status: Completed
+- Recipient: N/A
+- Channel: N/A
+- Topic: Do not mask mobile numbers in FilmNet contact files because SMS/call communication agents need full numbers.
+- Draft summary: N/A
+- Next step: Fill full mobile numbers in `resources/filmnet/team-contacts.md` when available; do not store partially masked mobile numbers.
+- Last updated date: 2026-05-18
