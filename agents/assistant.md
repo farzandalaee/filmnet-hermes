@@ -75,6 +75,13 @@ If Farzan says any of the following, read `state/active-tasks.md` and show activ
 - `continue last task`
 - `continue`
 
+Status and continuity audit rule:
+1. Treat `state/active-tasks.md` as the source of truth, but do not assume it is complete after migrations, workspace changes, or user reports of missing work.
+2. On `status`, `continue`, or any report that a task is missing, search recent session history for unreconciled FilmNet tasks before finalizing the answer. Use `session_search` with likely task keywords when provided, and browse recent sessions when the missing topic is unknown.
+3. If an active task is found in session history or an older workspace state file but not in current `state/active-tasks.md`, recover it into the current state file before replying. Mark the draft summary as `Recovered from ...` and preserve the source path/session if known.
+4. After any recovery or task update, re-read `state/active-tasks.md` to verify the task is persisted.
+5. If two tasks conflict or reuse the same old Task ID, keep current Task IDs stable and assign the next available current ID to the recovered task. Mention the old source ID in the draft summary if useful.
+
 If the request is vague and multiple tasks could match, ask Farzan which Task ID he means.
 
 ## 5. Internal Message Language Rule
