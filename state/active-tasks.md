@@ -71,3 +71,23 @@
 - Draft summary: Meeting noted from Farzan: today at 14:00 with Searchia team, onsite at FilmNet office. Agenda and attendees are not specified yet.
 - Next step: Prepare agenda/questions before 14:00; after the meeting, capture decisions, action items, owners, and follow-ups.
 - Last updated date: 2026-05-19
+
+## FN-2026-0519-008
+- Title: Link Hermes with Claude Code using bridge file workflow
+- Status: Waiting for Claude Code login
+- Recipient: Farzan
+- Channel: CLI / local bridge files
+- Topic: Use Claude Team subscription through Claude Code CLI while Hermes remains the orchestrator
+- Draft summary: Created Claude Code bridge files: root `CLAUDE.md`, executable `scripts/claude-code-bridge.py`, and `resources/filmnet/claude-code-bridge.md`. Verified Claude Code CLI is installed at `/opt/homebrew/bin/claude` and script syntax/executable status is OK. Bridge currently stops safely because Claude Code is not logged in.
+- Next step: Farzan to run `claude auth login` in a terminal with the Claude Team account, then test `python3 scripts/claude-code-bridge.py --task "Summarize active tasks" --allowed-tools Read --max-turns 3` from `/Users/farzan/filmnet-hermes`.
+- Last updated date: 2026-05-19
+
+## FN-2026-0519-009
+- Title: Give feedback to Parsa with Masih collaboration
+- Status: Pending tomorrow
+- Recipient: Parsa Khodaverdi (Junior Backend Developer), Masih Akbari
+- Channel: Internal coordination / feedback
+- Topic: Feedback to Parsa, in collaboration with Masih
+- Draft summary: Farzan asked to give feedback tomorrow to Parsa Khodaverdi, a recently-started Junior Backend Developer who works with Masih Akbari.
+- Next step: On 2026-05-20, coordinate with Masih and prepare/give feedback to Parsa; confirm contact channel if a message draft or direct follow-up is needed.
+- Last updated date: 2026-05-19

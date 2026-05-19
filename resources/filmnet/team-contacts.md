@@ -32,6 +32,20 @@ Use `name-fa` for Persian greeting lines in internal message drafts. Unknown val
 - Telegram: @devmasih
 - Telegram ID: 85436901
 
+### Parsa Khodaverdi
+
+- name-fa: پارسا
+- family-fa: خداوردی
+- Role: Junior Backend Developer
+- Organization: Backend Team
+- Reports / Works with: Masih Akbari
+- Domain Ownership: Backend development support
+- Tech Stack Areas: Server-side logic, APIs, backend services
+- Email: \[to be filled\]
+- Mobile: \[full mobile to be filled\]
+- Telegram: \[to be filled\]
+- Telegram ID: \[to be filled\]
+
 ### Kamran Abdi
 
 - name-fa: کامران
