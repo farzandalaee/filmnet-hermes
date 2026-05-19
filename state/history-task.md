@@ -111,3 +111,13 @@ Completed FilmNet tasks archived from `state/active-tasks.md`.
 - Draft summary: Audit completed and saved to `references/filmnet-orchestrator/token-efficiency-audit-2026-05-19.md`; daily archive cron is optimized with `no_agent: true`, while interactive sessions are moderate-to-heavy mainly due to toolsets, skill catalog, and duplicated FilmNet rules.
 - Next step: If Farzan approves, slim `filmnet-orchestrator` and `agents/assistant.md`, and optionally create a lean `filmnet-lite` profile.
 - Last updated date: 2026-05-19
+
+## FN-2026-0519-007
+- Title: Audit FilmNet Hermes agent token efficiency for jobs
+- Status: Completed
+- Recipient: Farzan
+- Channel: CLI / Hermes configuration
+- Topic: FilmNet Hermes profile, startup context, enabled toolsets, and cron job token usage
+- Draft summary: Optimization completed. Slimmed `agents/assistant.md` from ~1,936 to ~1,292 tokens, slimmed `filmnet-orchestrator` skill from ~3,992 to ~1,480 tokens, and added `references/lean-cron-jobs.md` for no_agent/script-only and restricted-toolset job patterns. Mandatory FilmNet startup subtotal reduced from ~3,826 to ~3,328 rough tokens despite this task record increasing active state slightly.
+- Next step: For future FilmNet cron jobs, use `no_agent: true` for deterministic scripts or set narrow `enabled_toolsets` such as `["file"]`; avoid attaching `hermes-agent` unless the job is specifically about Hermes setup/debugging.
+- Last updated date: 2026-05-19
