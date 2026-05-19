@@ -2,41 +2,25 @@
 
 ## FN-2026-0518-007
 - Title: Follow up on Tapsi integration with Masih
-- Status: Draft waiting for Farzan approval
+- Status: Waiting on Tapsi
 - Recipient: Masih Akbari (Backend Lead / Tech Lead)
-- Channel: Telegram
+- Channel: Telegram / Tapsi coordination
 - Topic: Tapsi integration follow-up
-- Draft summary: Recovered from old `/Users/farzan/filmnet-hermes/state/active-tasks.md`; Persian follow-up asks about current status, next steps, blockers, and timeline. Draft corrected to follow current Persian greeting rule.
-- Draft:
-  سلام مسیح
-
-  خواستم در مورد پیشرفت اینتگریشن تپسی پیگیری کنم. می‌تونیم وضعیت فعلی، برنامه‌ی مرحله‌ی بعد و زمان‌بندی تقریبی رو بررسی کنیم؟
-
-  اگر چالشی هست یا نیاز به هماهنگی داریم، لطفاً بگو که سریع‌تر جلو ببریم.
-
-  ممنون
-  فرزان
-- Next step: Farzan to approve, edit, or ask to prepare this Telegram draft for sending.
-- Last updated date: 2026-05-18
+- Draft summary: Farzan spoke with Masih. Masih has already connected with Tapsi and the current blocker is Tapsi whitelisting FilmNet numbers for the Tapsi staging environment.
+- Current update: Masih is waiting for Tapsi to whitelist FilmNet numbers in the Tapsi staging environment.
+- Next step: Follow up with Masih/Tapsi if whitelisting is not completed; once whitelisted, proceed with staging validation.
+- Last updated date: 2026-05-19
 
 ## FN-2026-0518-008
-- Title: Follow up with Hossein Tahmasebi on Samsung payment gateway for Samsung TVs
-- Status: Draft waiting for Farzan approval
-- Recipient: Hossein Tahmasebi (Mobile Lead / Android)
-- Channel: Telegram
-- Topic: Samsung payment gateway integration follow-up
-- Draft summary: Recovered from old `/Users/farzan/filmnet-hermes/state/active-tasks.md`; Persian follow-up asks about current status, next steps, blockers, and timeline. Draft corrected to follow current Persian greeting rule.
-- Draft:
-  سلام حسین
-
-  خواستم در مورد گیت‌وی پرداخت سامسونگ برای تلویزیون‌های سامسونگ پیگیری کنم. می‌تونیم وضعیت فعلی، برنامه‌ی مرحله‌ی بعد و زمان‌بندی تقریبی رو بررسی کنیم؟
-
-  اگر نیاز به هماهنگی یا پشتیبانی خاصی داریم، لطفاً بگو.
-
-  ممنون
-  فرزان
-- Next step: Farzan to approve, edit, or ask to prepare this Telegram draft for sending.
-- Last updated date: 2026-05-18
+- Title: Follow up on Samsung TV payment dashboard with Mohsen Arghand
+- Status: Waiting to schedule time with Mohsen
+- Recipient: Mohsen Arghand (stakeholder), Hossein Tahmasebi, Masih Akbari, BI team
+- Channel: Internal coordination / BI dashboard request
+- Topic: Samsung TV payment integration and BI dashboard
+- Draft summary: Farzan spoke with Hossein, Masih, and Mohsen Arghand. Backend and Android code already exist; no further FilmNet backend/Android changes are needed from their side. Remaining need is to ask the BI team to create a dashboard for Samsung TV payments.
+- Current update: Technical implementation is ready on backend and Android; next dependency is BI dashboard creation for Samsung TV payments.
+- Next step: Farzan to give Mohsen Arghand some time to align on the dashboard/stakeholder side, then ask BI team to create the Samsung TV payments dashboard.
+- Last updated date: 2026-05-19
 
 ## FN-2026-0518-009
 - Title: Create Hermes Agent workshop topic for team training
@@ -87,3 +71,4 @@
 - Draft summary: Meeting noted from Farzan: today at 14:00 with Searchia team, onsite at FilmNet office. Agenda and attendees are not specified yet.
 - Next step: Prepare agenda/questions before 14:00; after the meeting, capture decisions, action items, owners, and follow-ups.
 - Last updated date: 2026-05-19
+
