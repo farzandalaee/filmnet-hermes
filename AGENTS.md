@@ -35,6 +35,6 @@ Do not rely on chat history for FilmNet task state. Use the files above.
 ## Completed Task Archive
 
 - Keep `state/active-tasks.md` focused on active, waiting, pending, and draft tasks.
-- Move completed tasks to `state/history-task.md` so future agents do not pay to read long historical state for every status check.
+- Move completed tasks to `state/history-task.md` so future agents do not pay to read long historical state during normal work.
 - Run `python3 state/archive-completed-tasks.py` daily, or after marking tasks completed, to archive completed tasks.
-- For status reports, read `state/active-tasks.md` for active work and `state/history-task.md` only for completed-task history.
+- For status reports, read only `state/active-tasks.md` and show active / waiting / pending / draft tasks. Do not read or show `state/history-task.md` unless Farzan explicitly asks for completed-task history.

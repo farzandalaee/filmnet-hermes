@@ -77,3 +77,13 @@
   فرزان
 - Next step: Confirm preferred channel and whether greeting/name is correct, then approve/edit draft.
 - Last updated date: 2026-05-18
+
+## FN-2026-0519-006
+- Title: Attend onsite meeting with Searchia team at FilmNet office
+- Status: Pending meeting today
+- Recipient: Searchia team
+- Channel: Onsite meeting at FilmNet office
+- Topic: Searchia team meeting, scheduled for 2026-05-19 at 14:00
+- Draft summary: Meeting noted from Farzan: today at 14:00 with Searchia team, onsite at FilmNet office. Agenda and attendees are not specified yet.
+- Next step: Prepare agenda/questions before 14:00; after the meeting, capture decisions, action items, owners, and follow-ups.
+- Last updated date: 2026-05-19

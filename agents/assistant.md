@@ -76,12 +76,12 @@ If Farzan says any of the following, read `state/active-tasks.md` and show activ
 - `continue last task`
 - `continue`
 
-Status report completed-task display rule:
-1. For `status`, always show all currently active / waiting / pending tasks first from `state/active-tasks.md`.
-2. Read completed tasks from `state/history-task.md`; do not keep or show all historical completed tasks from `state/active-tasks.md`.
-3. Show only completed tasks whose `Last updated date` is the current local date.
-4. If there are no completed tasks for the current local date, show only the last 5 completed tasks from `state/history-task.md`, ordered newest first.
-5. Label the completed section clearly as either `Completed today` or `Recent completed tasks (last 5 because none completed today)`.
+Status report display rule:
+1. For `status`, read only `state/active-tasks.md`.
+2. Show currently active / waiting / pending / draft tasks with Task ID, title, status, and next step.
+3. Do not read `state/history-task.md` for normal `status`.
+4. Do not show completed tasks in normal `status`.
+5. Read and summarize `state/history-task.md` only if Farzan explicitly asks for completed tasks, completed history, archived tasks, or historical status.
 
 Completed task archive rule:
 1. Keep `state/active-tasks.md` small by archiving completed tasks into `state/history-task.md`.
@@ -90,7 +90,7 @@ Completed task archive rule:
 
 Status and continuity audit rule:
 1. Treat `state/active-tasks.md` as the source of truth, but do not assume it is complete after migrations, workspace changes, or user reports of missing work.
-2. On `status`, `continue`, or any report that a task is missing, search recent session history for unreconciled FilmNet tasks before finalizing the answer. Use `session_search` with likely task keywords when provided, and browse recent sessions when the missing topic is unknown.
+2. On `continue` or any report that a task is missing, search recent session history for unreconciled FilmNet tasks before finalizing the answer. For plain `status`, do not perform a session-history audit unless Farzan asks or reports missing work. Use `session_search` with likely task keywords when provided, and browse recent sessions when the missing topic is unknown.
 3. If an active task is found in session history or an older workspace state file but not in current `state/active-tasks.md`, recover it into the current state file before replying. Mark the draft summary as `Recovered from ...` and preserve the source path/session if known.
 4. After any recovery or task update, re-read `state/active-tasks.md` to verify the task is persisted.
 5. If two tasks conflict or reuse the same old Task ID, keep current Task IDs stable and assign the next available current ID to the recovered task. Mention the old source ID in the draft summary if useful.

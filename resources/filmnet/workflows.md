@@ -38,16 +38,11 @@ Task record fields:
 Use this workflow when Farzan says `status`, `show active tasks`, or asks what is pending.
 
 Steps:
-1. Read `state/active-tasks.md` for active / waiting / pending work.
-2. Show all active / waiting / pending tasks first, with Task ID, title, status, and next step.
-3. Read `state/history-task.md` only for completed task history.
-4. For completed tasks, do not show the full historical completed list.
-5. Get the current local date.
-6. Show completed tasks whose `Last updated date` matches the current local date.
-7. If no completed task matches the current local date, show only the last 5 completed tasks, ordered newest first.
-8. Label the completed section as either:
-   - `Completed today`
-   - `Recent completed tasks (last 5 because none completed today)`
+1. Read `state/active-tasks.md` for active / waiting / pending / draft work.
+2. Show all active / waiting / pending / draft tasks with Task ID, title, status, and next step.
+3. Do not read `state/history-task.md` for normal status reports.
+4. Do not show completed tasks in normal status reports.
+5. Read `state/history-task.md` only if Farzan explicitly asks for completed tasks, completed history, archived tasks, or historical status.
 
 ## 3.1 Completed Task Archive Workflow
 
