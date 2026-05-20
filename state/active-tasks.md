@@ -43,35 +43,6 @@
 - Next step: Farzan to approve/edit the announcement and decide timing/channel.
 - Last updated date: 2026-05-18
 
-## FN-2026-0518-010
-- Title: Follow up with Hessampour on Codex subscriptions for team
-- Status: Draft waiting for Farzan approval
-- Recipient: Hessampour (International Dept)
-- Channel: Telegram / Email to be confirmed
-- Topic: Codex AI model subscriptions procurement for team
-- Draft summary: Recovered from old `/Users/farzan/filmnet-hermes/state/active-tasks.md`; Persian follow-up asks about subscription availability and rollout timeline. `name-fa` is missing in team contacts, so greeting may need Farzan confirmation.
-- Draft:
-  سلام جناب حسام‌پور
-
-  خواستم در مورد اشتراک‌های Codex برای تیم پیگیری کنم. خوشحال می‌شم بدونیم وضعیت فعلی و زمان‌بندی ارائه به تیم چیه.
-
-  اگر نیاز به هماهنگی خاصی داریم یا اطلاعاتی لازم هست، لطفاً بفرمایید.
-
-  ممنون
-  فرزان
-- Next step: Confirm preferred channel and whether greeting/name is correct, then approve/edit draft.
-- Last updated date: 2026-05-18
-
-## FN-2026-0519-006
-- Title: Attend onsite meeting with Searchia team at FilmNet office
-- Status: Pending meeting today
-- Recipient: Searchia team
-- Channel: Onsite meeting at FilmNet office
-- Topic: Searchia team meeting, scheduled for 2026-05-19 at 14:00
-- Draft summary: Meeting noted from Farzan: today at 14:00 with Searchia team, onsite at FilmNet office. Agenda and attendees are not specified yet.
-- Next step: Prepare agenda/questions before 14:00; after the meeting, capture decisions, action items, owners, and follow-ups.
-- Last updated date: 2026-05-19
-
 ## FN-2026-0519-008
 - Title: Link Hermes with Claude Code using bridge file workflow
 - Status: Waiting for Claude Code login
@@ -91,3 +62,13 @@
 - Draft summary: Farzan asked to give feedback tomorrow to Parsa Khodaverdi, a recently-started Junior Backend Developer who works with Masih Akbari.
 - Next step: On 2026-05-20, coordinate with Masih and prepare/give feedback to Parsa; confirm contact channel if a message draft or direct follow-up is needed.
 - Last updated date: 2026-05-19
+
+## FN-2026-0520-013
+- Title: Schedule meeting with Shahrokh and Mohammad DevOps about shared storage for edge production servers
+- Status: Draft waiting for Farzan approval
+- Recipient: Shahrokh Nemati (Infrastructure Lead), Mohammad Ziaee (Full-stack / DevOps)
+- Channel: Telegram / meeting coordination
+- Topic: Shared storage implementation for production servers, specifically edge servers
+- Draft summary: Farzan wants to schedule a meeting with Shahrokh and Mohammad DevOps to discuss shared storage implementation for production edge servers, align on approach, and clarify constraints, risks, and next steps.
+- Next step: Review/edit the draft message, send after Farzan approval, then capture meeting time and agenda.
+- Last updated date: 2026-05-20

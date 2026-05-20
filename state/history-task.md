@@ -121,3 +121,47 @@ Completed FilmNet tasks archived from `state/active-tasks.md`.
 - Draft summary: Optimization completed. Slimmed `agents/assistant.md` from ~1,936 to ~1,292 tokens, slimmed `filmnet-orchestrator` skill from ~3,992 to ~1,480 tokens, and added `references/lean-cron-jobs.md` for no_agent/script-only and restricted-toolset job patterns. Mandatory FilmNet startup subtotal reduced from ~3,826 to ~3,328 rough tokens despite this task record increasing active state slightly.
 - Next step: For future FilmNet cron jobs, use `no_agent: true` for deterministic scripts or set narrow `enabled_toolsets` such as `["file"]`; avoid attaching `hermes-agent` unless the job is specifically about Hermes setup/debugging.
 - Last updated date: 2026-05-19
+
+## FN-2026-0519-006
+- Title: Attend onsite meeting with Searchia team at FilmNet office
+- Status: Completed
+- Recipient: Searchia team
+- Channel: Onsite meeting at FilmNet office
+- Topic: Searchia team meeting, scheduled for 2026-05-19 at 14:00
+- Draft summary: Searchia team completed a demo of their new feature and offered 1 month free for testing.
+- Current update: Farzan reviewed the demo offer and decided FilmNet is not going to use the feature, so no follow-up is needed.
+- Next step: Archive completed task.
+- Last updated date: 2026-05-20
+
+## FN-2026-0518-010
+- Title: Follow up with Hessampour on AI subscriptions for team
+- Status: Completed
+- Recipient: Hessampour (International Dept)
+- Channel: Internal coordination
+- Topic: Team AI subscriptions procurement
+- Draft summary: Hessampour completed the subscription request and provided 12 Claude AI accounts for the team.
+- Current update: Farzan confirmed the task is finished as of yesterday.
+- Next step: Archive completed task.
+- Last updated date: 2026-05-20
+
+## FN-2026-0520-011
+- Title: Create Hermes skill for Sotoon CDN record CSV export
+- Status: Completed
+- Recipient: Farzan
+- Channel: CLI / Hermes skill
+- Topic: Export Sotoon DomainZone edge A records to CSV by pattern such as tcihalf and tciful
+- Draft summary: Created the `sotoon-cdn-records` Hermes skill and linked Ruby export script to generate `domain,ip` CSV rows from `kubectl get domainzones/filmnet-ir -o yaml` output.
+- Current update: Verified the script against `/Users/farzan/filmnet-dns-records.yml` and generated `/Users/farzan/filmnet-cdn-tci-edges.csv` with 120 rows total: 60 `tcihalf` and 60 `tciful`.
+- Next step: Archive completed task.
+- Last updated date: 2026-05-20
+
+## FN-2026-0520-012
+- Title: Enhance Sotoon CDN export skill with rate_type and alias resolution
+- Status: Completed
+- Recipient: Farzan
+- Channel: CLI / Hermes skill
+- Topic: Add `rate_type` column and resolve ALIAS/CNAME targets to A-record IPs in Sotoon CSV export
+- Draft summary: Updated the `sotoon-cdn-records` skill and export script to emit `domain,ip,rate_type` and resolve alias-based records within the same zone.
+- Current update: Verified against both the real Sotoon export and a synthetic alias fixture. Real output remains 120 rows with `half`/`full` values; alias test confirmed `ALIAS` and `CNAME` records resolve to final IPs.
+- Next step: Archive completed task.
+- Last updated date: 2026-05-20
