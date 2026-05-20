@@ -1,0 +1,22 @@
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Runtime logs
+logs/
+*.log
+
+# Hermes / FilmNet runtime event queues and cursors
+inbox/*.jsonl
+inbox/*-state.json
+inbox/messenger-*.json
+inbox/messenger-*.jsonl
+
+# Claude Code bridge runtime queues
+inbox/claude-code-bridge/*.jsonl
+
+# Local secrets / env files
+.env
+.env.*
+*.env
