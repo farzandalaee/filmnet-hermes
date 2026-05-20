@@ -162,6 +162,7 @@ Telegram reply intake implementation:
 - Dispatcher behavior: sends approved single-recipient or multi-recipient Telegram requests, records delivery events, and sends exact pre-approved follow-up messages for non-responders when `follow_up.enabled` is true.
 - Assistant watcher behavior: reads Messenger events, updates the related task in `state/active-tasks.md` with a Messenger automation summary block, and notifies Farzan on Telegram about replies, failures, and unmatched inbound messages.
 - Safety: inbound recipient text is never passed into Hermes as an agent-control prompt. Ordinary team members should not be added to Hermes gateway allowlists just to reply.
+- Runtime maintenance: run `python3 scripts/rotate_runtime_files.py --dry-run` to inspect rotation and `python3 scripts/rotate_runtime_files.py` to rotate logs/JSONL queues. The script archives old/large runtime files under `archive/runtime/`, keeps recent JSONL lines active for reply matching, and deliberately does not rotate state cursor files such as `inbox/messenger-telegram-intake-state.json`.
 
 ### Option C: JSONL plus Kanban later
 

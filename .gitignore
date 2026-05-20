@@ -3,9 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Runtime logs
+# Runtime logs and local runtime archive
 logs/
 *.log
+archive/
+*.gz
 
 # Hermes / FilmNet runtime event queues and cursors
 inbox/*.jsonl
