@@ -65,12 +65,12 @@
 
 ## FN-2026-0520-013
 - Title: Schedule meeting with Shahrokh and Mohammad DevOps about shared storage for edge production servers
-- Status: Pending Saturday bot-start prerequisite
+- Status: Waiting for Shahrokh bot-start prerequisite
 - Recipient: Shahrokh Nemati (Infrastructure Lead), Mohammad Ziaee (Full-stack / DevOps)
 - Channel: Telegram / meeting coordination
 - Topic: Shared storage implementation for production servers, specifically edge servers
-- Draft summary: Farzan wants to schedule a meeting with Shahrokh and Mohammad DevOps to discuss shared storage implementation for production edge servers, align on approach, and clarify constraints, risks, and next steps. This remains the target production communication, but Shahrokh and Mohammad have not started the Messenger bot yet.
-- Current update: Farzan will ask Shahrokh and Mohammad on Saturday 2026-05-23 to start the bot before Messenger delivery is attempted.
+- Draft summary: Farzan wants to schedule a meeting with Shahrokh and Mohammad DevOps to discuss shared storage implementation for production edge servers, align on approach, and clarify constraints, risks, and next steps. Mohammad DevOps has started the Messenger bot; Shahrokh still needs to start it before a two-recipient Messenger delivery is attempted.
+- Current update: Mohammad Ziaee / Mohammad DevOps has started the bot. Shahrokh Nemati has not yet started the bot; Farzan planned to ask him on Saturday 2026-05-23 before Messenger delivery is attempted.
 - Draft:
   سلام شاهرخ و محمد
 
@@ -79,24 +79,18 @@
   لطفاً زمان‌های خالی‌تون برای امروز یا فردا رو بگید تا جلسه رو هماهنگ کنیم.
 
   ممنون
-- Next step: On Saturday 2026-05-23, Farzan asks Shahrokh and Mohammad to start the bot; after they do, use Messenger Option A to send the approved meeting coordination message with reply tracking.
+- Next step: Wait for Shahrokh to start the bot, then use Messenger Option A to send the approved meeting coordination message to Shahrokh and Mohammad with reply tracking. If Farzan wants, Messenger can send a one-recipient message to Mohammad now.
 - Last updated date: 2026-05-20
 
 ## FN-2026-0520-014
 - Title: Implement Messenger Option A JSONL inbox/outbox workflow
-- Status: Waiting for Hossein reply
-- Recipient: Hossein Tahmasebi for immediate Messenger test; Shahrokh Nemati and Mohammad Ziaee after bot-start prerequisite
+- Status: Ready for production use
+- Recipient: Farzan / Messenger agent / FilmNet assistant
 - Channel: Hermes agent workflow / JSONL inbox-outbox / Telegram / Email / future channels
 - Topic: Messenger agent sends approved messages and tracks replies for FilmNet assistant using simple auditable JSONL queues first
 - Draft summary: Farzan chose Option A as the first Messenger implementation path. Option A means a file-based JSONL command inbox for approved send requests and a JSONL event outbox for delivery results, failures, replies, and unmatched inbound messages. FilmNet assistant remains the orchestrator and updates `state/active-tasks.md`; Messenger only sends exact approved content and reports events.
-- Current update: Messenger Phase 1 through Phase 3 are now implemented on the current JSONL architecture. Added Telegram dispatcher `scripts/messenger_telegram_dispatcher.py` to process approved send requests, support both single-recipient and multi-recipient sends, and record delivery events. Kept Telegram reply intake in `scripts/messenger_telegram_intake.py`, updated it for recipient arrays, and preserved the single-poller safety model to avoid Telegram HTTP 409 conflicts. Added assistant-side watcher `scripts/messenger_event_assistant.py` to read Messenger events, update the related task in `state/active-tasks.md` with a Messenger automation summary block, and notify Farzan on Telegram for replies, failures, and unmatched inbound messages. Added LaunchAgents for dispatcher and assistant watcher alongside the existing intake agent, plus state files and logs. Phase 3 follow-up support is implemented through exact pre-approved `follow_up` message payloads with delay/max-attempt controls for non-responders. On 2026-05-20, health check confirmed dispatcher, intake, and assistant watcher LaunchAgents are loaded/running; Python syntax checks pass; no current dispatcher/assistant errors; earlier intake HTTP 409 conflict is recorded in the error log but the intake service is currently running. Shahrokh and Mohammad have not started the bot yet, so Farzan will ask them on Saturday 2026-05-23; for now, use Hossein Tahmasebi because he has already started the bot. Runtime rotation script `scripts/rotate_runtime_files.py` was added to archive old/large logs and JSONL queues under `archive/runtime/` while preserving state cursor JSON files; dry-run and normal run currently report no rotation needed because files are still small/recent.
-- Draft:
-  سلام حسین
-
-  این یک پیام تست از Messenger Hermes FilmNet است. لطفاً اگر دریافت کردی همینجا یک پاسخ کوتاه بده.
-
-  ممنون
-- Next step: Messenger Option A runtime is usable; wait for Saturday 2026-05-23 bot-start prerequisite for Shahrokh/Mohammad before sending their meeting coordination message, and run `python3 scripts/rotate_runtime_files.py --dry-run` periodically or before long-running production use to inspect runtime file rotation.
+- Current update: Messenger Option A is implemented and usable. Telegram dispatcher, Telegram intake, and assistant event watcher are running; approved send requests are delivered; replies are captured as `reply_received` events; task updates and Farzan notifications work. Hossein Tahmasebi completed two Messenger tests, including the latest reply `Did you call me?` at 2026-05-20T16:37:03.113030+00:00. Runtime rotation script `scripts/rotate_runtime_files.py` was added to archive old/large logs and JSONL queues under `archive/runtime/` while preserving state cursor JSON files. Mohammad Ziaee / Mohammad DevOps has started the bot. Shahrokh Nemati has not started the bot yet; Farzan will ask him on Saturday 2026-05-23 before using Messenger for the two-recipient shared-storage meeting coordination.
+- Next step: Use Messenger Option A for the next approved team communication whose recipients have started the bot. For the Shahrokh/Mohammad shared-storage message, wait for Shahrokh's bot-start prerequisite unless Farzan wants to send a one-recipient message to Mohammad now.
 - Messenger automation:
   - Requests:
     - msgreq-20260520T151852Z-942421e4: channel=telegram recipients=1 reply_required=True deadline=[none] follow_up=disabled
@@ -116,4 +110,19 @@
 - Draft summary: Farzan wants Option C implemented in the future after Option A is stable. Option C keeps JSONL/event inbox-outbox as the canonical communication event layer, while using Hermes Kanban for durable work assignments such as send-and-track, follow-up by deadline, failed delivery escalation, and reply-summary jobs.
 - Current update: Future architecture decision captured; do not implement until Option A is working and reviewed.
 - Next step: After Option A is stable, design Kanban task types, payload links to JSONL events, dispatcher behavior, and completion/blocking rules for Messenger jobs.
+- Last updated date: 2026-05-20
+
+## FN-2026-0520-016
+- Title: Call Mrs Pooriamin at Asisatech about 10G fiber link between Milad and Hakimieh Datacenter
+- Status: Pending Farzan call
+- Recipient: Mrs Pooriamin (Asisatech)
+- Channel: Phone call
+- Topic: 10G fiber link coordination between Milad and Hakimieh Datacenter
+- Draft summary: Farzan clarified that this follow-up should be a phone call, not a text message. Goal is to get the current status, blockers, required actions from FilmNet, and expected next-step timing for the 10G fiber link between Milad and Hakimieh Datacenter.
+- Call points:
+  1. Ask for current status of the 10G fiber link between Milad and Hakimieh Datacenter.
+  2. Ask whether there is any blocker or pending dependency.
+  3. Ask whether anything is needed from FilmNet to move it forward.
+  4. Ask for expected next step and estimated timeline.
+- Next step: Farzan to call Mrs Pooriamin, then update the task with outcome, blockers, and any promised timeline or required follow-up.
 - Last updated date: 2026-05-20
