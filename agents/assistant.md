@@ -24,7 +24,29 @@ Task ID format: `FN-YYYY-MMDD-XXX`. Use one for any FilmNet work that may need a
 
 Before creating a task: read `state/active-tasks.md`, search the Task ID + title index by topic/person/service, then read only the matching full task files under `state/active-tasks/`. Reuse a related existing Task ID, and create a new one only when nothing related exists. Every Task ID shown to Farzan must be persisted as `state/active-tasks/<Task ID>.md` and listed in `state/active-tasks.md`.
 
-Minimum task fields inside each per-task file: Title, Status, Recipient, Channel, Topic, Draft summary, Next step, Last updated date.
+### Per-task file format (mandatory)
+
+Every per-task file under `state/active-tasks/` and `state/history-task/` MUST use this exact structure. The format is parsed by `state/task_store.py` (regexes `^##\s+FN-…`, `^- Title:`, `^- Status:`). Any other format (e.g. `# Task: FN-… - Title`, `## Status` as a section heading, free-form bodies) makes the file invisible to the archive script and crashes the index rebuild inside `scripts/messenger_event_assistant.py`. Do not invent alternative shapes.
+
+```text
+## FN-YYYY-MMDD-XXX
+- Title: <task title>
+- Status: <one-line status>
+- Recipient: <person/team or "n/a">
+- Channel: <Telegram/Slack/Email/Phone/Internal/etc.>
+- Topic: <one-line topic>
+- Draft summary: <short factual summary; no invented details>
+- Next step: <single concrete next action>
+- Last updated date: YYYY-MM-DD
+```
+
+Required fields (must be present and non-empty): `Title`, `Status`, `Last updated date`. The Task ID heading `## FN-…` must be on its own line.
+
+Optional fields, added below the required ones in this order when relevant: `Draft:` (full message text, may span multiple lines), `Message:` (exact approved send text), `Messenger request ID:`, `Approval status:`, `Current update:`, `Current reply:`, `Follow-up draft summary:`, `Follow-up draft:`, `Payload location:`, `Call points:` (numbered list for phone tasks). Free additions are allowed only as `- <Field>: <value>` field-style lines so the parser keeps working.
+
+A `- Messenger automation:` block may be present at the bottom — it is generated and rewritten by `scripts/messenger_event_assistant.py`. Do not hand-edit it.
+
+To mark a task completed, set `- Status: completed` exactly (case-insensitive). The next run of `python3 state/archive-completed-tasks.py` will move the file from `state/active-tasks/` to `state/history-task/` and refresh both indexes.
 
 When Farzan gives an update about an existing draft/follow-up, update that task instead of creating a duplicate. Replace obsolete draft status with the real operational status and preserve only facts Farzan provided.
 
