@@ -33,7 +33,7 @@ Recipient identity and contact data come from one-line CONTACT records in `resou
 
 ## Reporting back to the assistant
 
-Loop: Farzan asks assistant → assistant resolves contacts, drafts, gets approval, hands you an approved payload → you send → you track replies → you report delivery/reply events → assistant updates the relevant per-task file under `state/active-tasks/` and decides next move with Farzan.
+Loop: Farzan asks assistant → assistant resolves contacts, drafts, gets approval, hands you an approved payload → you send → you track replies → you report delivery/reply events → assistant updates the relevant task row in `state/active-tasks.jsonl` and decides next move with Farzan.
 
 For ambiguous replies or unmatched inbound messages, report `task_id: null` plus best-effort sender/channel metadata to the FilmNet assistant for triage.
 

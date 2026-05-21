@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Utilities for FilmNet per-task Markdown state files."""
+"""Utilities for FilmNet task JSONL state files."""
 
 from __future__ import annotations
 
+import json
 import re
-import shutil
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 TASK_ID_PATTERN = r"FN-\d{4}-\d{4}-\d{3}"
 TASK_HEADING_RE = re.compile(rf"^##\s+({TASK_ID_PATTERN})\s*$", re.MULTILINE)
@@ -14,6 +14,8 @@ TASK_SPLIT_RE = re.compile(rf"(?=^##\s+{TASK_ID_PATTERN}\s*$)", re.MULTILINE)
 TITLE_RE = re.compile(r"^- Title:\s*(.+?)\s*$", re.MULTILINE)
 STATUS_RE = re.compile(r"^- Status:\s*(.+?)\s*$", re.MULTILINE)
 READ_FILE_PREFIX_RE = re.compile(r"^\s*\d+\|\s?")
+
+TaskRecord = Dict[str, str]
 
 
 def normalize_read_file_prefixes(text: str) -> str:
@@ -60,28 +62,100 @@ def is_completed(task_text: str) -> bool:
     return task_status(task_text).lower() == "completed"
 
 
-def task_path(task_dir: Path, task_id_value: str) -> Path:
-    if not re.fullmatch(TASK_ID_PATTERN, task_id_value):
-        raise ValueError(f"Invalid FilmNet task ID: {task_id_value}")
-    return task_dir / f"{task_id_value}.md"
+def task_jsonl_path(task_dir: Path) -> Path:
+    """Return the JSONL file that replaces a legacy per-task Markdown directory."""
+    return task_dir.with_suffix(".jsonl")
+
+
+def task_to_record(task_text: str) -> TaskRecord:
+    markdown = task_text.rstrip() + "\n"
+    return {
+        "task_id": task_id(markdown),
+        "title": task_title(markdown),
+        "status": task_status(markdown),
+        "markdown": markdown,
+    }
+
+
+def record_to_task(record: TaskRecord) -> str:
+    markdown = str(record.get("markdown") or "").rstrip() + "\n"
+    if markdown.strip():
+        return markdown
+    tid = str(record.get("task_id") or "").strip()
+    title = str(record.get("title") or "[title missing]").strip()
+    status = str(record.get("status") or "").strip()
+    return f"## {tid}\n- Title: {title}\n- Status: {status}\n"
+
+
+def read_task_records(task_dir: Path) -> List[TaskRecord]:
+    """Read task records from JSONL, with legacy .md fallback during migration."""
+    jsonl_path = task_jsonl_path(task_dir)
+    records: List[TaskRecord] = []
+    seen: set[str] = set()
+    if jsonl_path.exists():
+        with jsonl_path.open("r", encoding="utf-8") as f:
+            for line_no, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"Invalid JSON in {jsonl_path}:{line_no}: {exc}") from exc
+                if not isinstance(row, dict):
+                    raise ValueError(f"Invalid task row in {jsonl_path}:{line_no}: expected object")
+                markdown = record_to_task(row)
+                record = task_to_record(markdown)
+                records.append(record)
+                seen.add(record["task_id"])
+    if task_dir.exists():
+        for path in sorted(task_dir.glob("*.md")):
+            if not re.fullmatch(rf"{TASK_ID_PATTERN}\.md", path.name):
+                continue
+            markdown = path.read_text(encoding="utf-8")
+            record = task_to_record(markdown)
+            if record["task_id"] not in seen:
+                records.append(record)
+                seen.add(record["task_id"])
+    return sorted(records, key=lambda r: r["task_id"])
+
+
+def write_task_records(task_dir: Path, records: Iterable[TaskRecord]) -> Path:
+    jsonl_path = task_jsonl_path(task_dir)
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    by_id: Dict[str, TaskRecord] = {}
+    for record in records:
+        normalized = task_to_record(record_to_task(record))
+        by_id[normalized["task_id"]] = normalized
+    lines = [json.dumps(by_id[tid], ensure_ascii=False, separators=(",", ":")) for tid in sorted(by_id)]
+    jsonl_path.write_text(("\n".join(lines) + "\n") if lines else "", encoding="utf-8")
+    return jsonl_path
 
 
 def write_task_file(task_dir: Path, task_text: str) -> Path:
-    task_dir.mkdir(parents=True, exist_ok=True)
-    tid = task_id(task_text)
-    path = task_path(task_dir, tid)
-    path.write_text(task_text.rstrip() + "\n", encoding="utf-8")
-    return path
+    """Upsert one task record into the JSONL store.
+
+    The name is kept for backward compatibility with older scripts; it no
+    longer creates `state/*/<Task ID>.md` files.
+    """
+    record = task_to_record(task_text)
+    records = [r for r in read_task_records(task_dir) if r["task_id"] != record["task_id"]]
+    records.append(record)
+    return write_task_records(task_dir, records)
 
 
 def read_task_files(task_dir: Path) -> List[str]:
-    if not task_dir.exists():
-        return []
-    tasks: List[str] = []
-    for path in sorted(task_dir.glob("*.md")):
-        if re.fullmatch(rf"{TASK_ID_PATTERN}\.md", path.name):
-            tasks.append(path.read_text(encoding="utf-8"))
-    return tasks
+    """Return task Markdown bodies from the JSONL store."""
+    return [record_to_task(record) for record in read_task_records(task_dir)]
+
+
+def read_task(task_dir: Path, task_id_value: str) -> str:
+    if not re.fullmatch(TASK_ID_PATTERN, task_id_value):
+        raise ValueError(f"Invalid FilmNet task ID: {task_id_value}")
+    for record in read_task_records(task_dir):
+        if record["task_id"] == task_id_value:
+            return record_to_task(record)
+    raise FileNotFoundError(f"Task not found in {task_jsonl_path(task_dir)}: {task_id_value}")
 
 
 def write_index(index_path: Path, heading: str, tasks: Iterable[str]) -> None:
@@ -93,18 +167,29 @@ def write_index(index_path: Path, heading: str, tasks: Iterable[str]) -> None:
 
 
 def migrate_legacy_file(legacy_path: Path, task_dir: Path, index_path: Path, heading: str) -> int:
-    if not legacy_path.exists():
-        task_dir.mkdir(parents=True, exist_ok=True)
-        write_index(index_path, heading, read_task_files(task_dir))
-        return 0
-    tasks = split_legacy_tasks(legacy_path.read_text(encoding="utf-8"))
-    task_dir.mkdir(parents=True, exist_ok=True)
-    if not tasks:
-        return rebuild_index(task_dir, index_path, heading)
-    for task in tasks:
-        write_task_file(task_dir, task)
-    write_index(index_path, heading, tasks)
-    return len(tasks)
+    tasks = read_task_files(task_dir)
+    if legacy_path.exists():
+        tasks.extend(split_legacy_tasks(legacy_path.read_text(encoding="utf-8")))
+    if tasks:
+        write_task_records(task_dir, [task_to_record(task) for task in tasks])
+    write_index(index_path, heading, read_task_files(task_dir))
+    return len(read_task_files(task_dir))
+
+
+def remove_legacy_task_files(task_dir: Path) -> int:
+    """Delete legacy per-task Markdown files after a verified JSONL migration."""
+    removed = 0
+    if not task_dir.exists():
+        return removed
+    for path in sorted(task_dir.glob("*.md")):
+        if re.fullmatch(rf"{TASK_ID_PATTERN}\.md", path.name):
+            path.unlink()
+            removed += 1
+    try:
+        task_dir.rmdir()
+    except OSError:
+        pass
+    return removed
 
 
 def rebuild_index(task_dir: Path, index_path: Path, heading: str) -> int:
@@ -114,23 +199,24 @@ def rebuild_index(task_dir: Path, index_path: Path, heading: str) -> int:
 
 
 def archive_completed(active_dir: Path, history_dir: Path, active_index: Path, history_index: Path) -> Tuple[int, int, int]:
-    active_dir.mkdir(parents=True, exist_ok=True)
-    history_dir.mkdir(parents=True, exist_ok=True)
+    active_records = read_task_records(active_dir)
+    history_records = read_task_records(history_dir)
+    history_by_id = {record["task_id"]: record for record in history_records}
+    remaining_records: List[TaskRecord] = []
     archived = 0
     skipped = 0
-    for path in sorted(active_dir.glob("*.md")):
-        if not re.fullmatch(rf"{TASK_ID_PATTERN}\.md", path.name):
-            continue
-        task_text = path.read_text(encoding="utf-8")
+    for record in active_records:
+        task_text = record_to_task(record)
         if not is_completed(task_text):
+            remaining_records.append(record)
             continue
-        destination = task_path(history_dir, task_id(task_text))
-        if destination.exists():
+        if record["task_id"] in history_by_id:
             skipped += 1
-            path.unlink()
             continue
-        shutil.move(str(path), str(destination))
+        history_by_id[record["task_id"]] = record
         archived += 1
+    write_task_records(active_dir, remaining_records)
+    write_task_records(history_dir, history_by_id.values())
     remaining = rebuild_index(active_dir, active_index, "Active Tasks")
     rebuild_index(history_dir, history_index, "History Tasks")
     return archived, remaining, skipped

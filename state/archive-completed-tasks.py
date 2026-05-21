@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Move completed FilmNet tasks from per-task active files to history files.
+"""Move completed FilmNet tasks from active JSONL to history JSONL.
 
 Usage:
   python3 state/archive-completed-tasks.py
 
 The script keeps `state/active-tasks.md` as a small task index and stores full
-records under `state/active-tasks/<task-id>.md` or `state/history-task/<task-id>.md`.
+records as one JSON object per line in `state/active-tasks.jsonl` and
+`state/history-task.jsonl`.
 """
 
 from __future__ import annotations
@@ -26,9 +27,9 @@ HISTORY_DIR = ROOT / "state" / "history-task"
 
 
 def main() -> int:
-    if not ACTIVE_DIR.exists() and ACTIVE_INDEX.exists():
+    if not task_store.task_jsonl_path(ACTIVE_DIR).exists() and ACTIVE_INDEX.exists():
         task_store.migrate_legacy_file(ACTIVE_INDEX, ACTIVE_DIR, ACTIVE_INDEX, "Active Tasks")
-    if not HISTORY_DIR.exists() and HISTORY_INDEX.exists():
+    if not task_store.task_jsonl_path(HISTORY_DIR).exists() and HISTORY_INDEX.exists():
         task_store.migrate_legacy_file(HISTORY_INDEX, HISTORY_DIR, HISTORY_INDEX, "History Tasks")
 
     archived, remaining, skipped = task_store.archive_completed(

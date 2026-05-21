@@ -9,7 +9,7 @@ FilmNet assistant / Farzan assistant:
 - identifies recipient from a single matching CONTACT line in `resources/filmnet/team-contacts.md`
 - drafts message content
 - gets Farzan approval before sending
-- creates/updates the FilmNet Task ID in the task index `state/active-tasks.md` and the full per-task file under `state/active-tasks/`
+- creates/updates the FilmNet Task ID in the task index `state/active-tasks.md` and the full task row in `state/active-tasks.jsonl`
 - sends an approved delivery payload to Messenger
 - receives Messenger delivery/reply events and decides next steps
 
@@ -120,7 +120,7 @@ If any validation fails, Messenger reports a failure event and does not send.
 - Messenger should be channel-agnostic: Telegram first, email/SMS/other later.
 - Messenger should not maintain a separate team directory.
 - For ambiguous replies or unmatched inbound messages, Messenger should report `task_id: null` plus best-effort sender/channel metadata to FilmNet assistant for triage.
-- FilmNet assistant remains responsible for updating the relevant full task file under `state/active-tasks/` after delivery or replies, then refreshing `state/active-tasks.md` if the title changes.
+- FilmNet assistant remains responsible for updating the relevant full task row in `state/active-tasks.jsonl` after delivery or replies, then refreshing `state/active-tasks.md` if the title changes.
 
 ## Implementation Roadmap
 
@@ -137,7 +137,7 @@ Rules:
 - Use `recipients` for announcements/broadcasts and `recipient` for single-person sends; Messenger should support both.
 - Messenger validates and sends only approved requests.
 - Messenger writes all results as append-only events.
-- FilmNet assistant reads events and updates the matching per-task file under `state/active-tasks/`.
+- FilmNet assistant reads events and updates the matching task row in `state/active-tasks.jsonl`.
 - Dry-run validation should exist before real Telegram/email sending is enabled.
 
 Telegram reply intake implementation:
@@ -160,7 +160,7 @@ Telegram reply intake implementation:
 - Assistant watcher state: `inbox/messenger-assistant-state.json`
 - Behavior: polls Telegram Bot API using the Messenger profile token, maps known senders from `team-contacts.md`, matches replies to sent Messenger requests by `reply_to_message.message_id` or latest reply-tracked request for the sender, and appends `reply_received` or `unmatched_inbound_message` events to `inbox/messenger-events.jsonl`.
 - Dispatcher behavior: sends approved single-recipient or multi-recipient Telegram requests, records delivery events, and sends exact pre-approved follow-up messages for non-responders when `follow_up.enabled` is true.
-- Assistant watcher behavior: reads Messenger events, updates the related per-task file under `state/active-tasks/` with a Messenger automation summary block, refreshes the active index when needed, and notifies Farzan on Telegram about replies, failures, and unmatched inbound messages.
+- Assistant watcher behavior: reads Messenger events, updates the related task row in `state/active-tasks.jsonl` with a Messenger automation summary block, refreshes the active index when needed, and notifies Farzan on Telegram about replies, failures, and unmatched inbound messages.
 - Safety: inbound recipient text is never passed into Hermes as an agent-control prompt. Ordinary team members should not be added to Hermes gateway allowlists just to reply.
 - Runtime maintenance: run `python3 scripts/rotate_runtime_files.py --dry-run` to inspect rotation and `python3 scripts/rotate_runtime_files.py` to rotate logs/JSONL queues. The script archives old/large runtime files under `archive/runtime/`, keeps recent JSONL lines active for reply matching, and deliberately does not rotate state cursor files such as `inbox/messenger-telegram-intake-state.json`.
 

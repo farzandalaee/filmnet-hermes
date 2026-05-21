@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Assistant-side watcher for FilmNet Messenger events.
 
-Reads messenger-events.jsonl, updates related per-task files under
-state/active-tasks/ with an auto-generated Messenger summary block, and notifies
+Reads messenger-events.jsonl, updates related task rows in
+state/active-tasks.jsonl with an auto-generated Messenger summary block, and notifies
 Farzan on Telegram when important events arrive.
 """
 
@@ -306,17 +306,17 @@ def update_task_file(events: List[Dict[str, Any]], dry_run: bool = False) -> Lis
     if not relevant_task_ids:
         return []
 
-    if not ACTIVE_TASKS_DIR.exists() and ACTIVE_TASKS_INDEX.exists():
+    if not task_store.task_jsonl_path(ACTIVE_TASKS_DIR).exists() and ACTIVE_TASKS_INDEX.exists():
         task_store.migrate_legacy_file(ACTIVE_TASKS_INDEX, ACTIVE_TASKS_DIR, ACTIVE_TASKS_INDEX, "Active Tasks")
-    if not ACTIVE_TASKS_DIR.exists():
+    if not task_store.task_jsonl_path(ACTIVE_TASKS_DIR).exists():
         return []
 
     updated_task_ids: List[str] = []
     for task_id in sorted(relevant_task_ids):
-        path = task_store.task_path(ACTIVE_TASKS_DIR, task_id)
-        if not path.exists():
+        try:
+            text = task_store.read_task(ACTIVE_TASKS_DIR, task_id)
+        except FileNotFoundError:
             continue
-        text = path.read_text(encoding="utf-8")
         match = TASK_SECTION_RE.search(text)
         if not match:
             continue
@@ -328,7 +328,7 @@ def update_task_file(events: List[Dict[str, Any]], dry_run: bool = False) -> Lis
         if new_text != text:
             updated_task_ids.append(task_id)
             if not dry_run:
-                path.write_text(new_text.rstrip() + "\n", encoding="utf-8")
+                task_store.write_task_file(ACTIVE_TASKS_DIR, new_text.rstrip() + "\n")
 
     if updated_task_ids and not dry_run:
         task_store.rebuild_index(ACTIVE_TASKS_DIR, ACTIVE_TASKS_INDEX, "Active Tasks")
