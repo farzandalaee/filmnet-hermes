@@ -5,3 +5,4 @@
 - FN-2026-0518-009 — Create Hermes Agent workshop topic for team training
 - FN-2026-0520-013 — Shared storage implementation meeting with Shahrokh and Mohammad DevOps - CONFIRMED
 - FN-2026-0521-001 — Messenger Telegram Test Message to Mohammad Ziaee (DevOps)
+- FN-2026-0521-002 — Messenger Telegram test message to Farzan
