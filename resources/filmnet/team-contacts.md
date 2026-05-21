@@ -2,279 +2,33 @@
 
 Single source of truth for FilmNet team identity, organization, ownership, and contact data.
 
-Use `name-fa` for Persian greeting lines in internal message drafts. Unknown values must stay as `[to be filled]`. Mobile numbers must be stored as full numbers because SMS/call communication agents need them. If the full mobile number is not known, use `[full mobile to be filled]` rather than a partially masked number.
+Format: one contact record per line. Use `grep -i "<name-or-alias>" resources/filmnet/team-contacts.md` to retrieve a single complete contact without loading the whole file.
 
-## CTO/CPO
+Unknown values must stay as `[to be filled]`. Mobile numbers must be stored as full numbers because SMS/call communication agents need them. If the full mobile number is not known, use `[full mobile to be filled]` rather than a partially masked number.
 
-### Farzan Dalaee
+Fields: name, name-fa, family-fa, aliases, role, organization, reports-to-or-works-with, domain-ownership, tech-stack-areas, email, mobile, telegram, telegram-id.
 
-- name-fa: فرزان
-- family-fa: دالایی
-- Role: CTO/CPO
-- Organization: CTO/CPO
-- Email: farzan.dalaee@gmail.com
-- Mobile: +989121938710
-- Telegram: @farzandalaee
-- Telegram ID: 88227782
-
-## Tech Lead / Backend Team
-
-### Masih Akbari
-
-- name-fa: مسیح
-- family-fa: اکبری
-- Role: Backend Lead / Tech Lead
-- Organization: Tech Lead, Backend Team
-- Domain Ownership: API endpoints, backend services, data models, scalability
-- Tech Stack Areas: Server-side logic, database design, APIs
-- Email: \[to be filled\]
-- Mobile: +989107436879
-- Telegram: @devmasih
-- Telegram ID: 85436901
-
-### Parsa Khodaverdi
-
-- name-fa: پارسا
-- family-fa: خداوردی
-- Role: Junior Backend Developer
-- Organization: Backend Team
-- Reports / Works with: Masih Akbari
-- Domain Ownership: Backend development support
-- Tech Stack Areas: Server-side logic, APIs, backend services
-- Email: \[to be filled\]
-- Mobile: \[full mobile to be filled\]
-- Telegram: \[to be filled\]
-- Telegram ID: \[to be filled\]
-
-### Kamran Abdi
-
-- name-fa: کامران
-- family-fa: عبدی
-- Role: Payments Domain Owner
-- Organization: Backend Team
-- Domain Ownership: Subscription flows, payment gateways, reconciliation
-- Tech Stack Areas: Payment processing, billing logic
-- Email: \[to be filled\]
-- Mobile: +989129322847
-- Telegram: @Ryan_2013
-- Telegram ID: 1056305279
-
-### Mohammad Allah Verdi
-
-- name-fa: محمد
-- family-fa: الله‌وردی
-- Also known as: Mohammad CDN
-- Role: CDN Manager
-- Organization: Backend Team
-- Domain Ownership: Content delivery network, transcoding pipeline, media storage
-- Tech Stack Areas: CDN providers, video processing, storage
-- Email: \[to be filled\]
-- Mobile: +989195355443
-- Telegram: @SoftDevelopment
-- Telegram ID: 50936596
-
-## Frontend Team
-
-### Saman Maghsodian
-
-- name-fa: سامان
-- family-fa: مقصودیان
-- Role: Frontend Lead
-- Organization: Frontend Team
-- Domain Ownership: Web player implementation, React frontend architecture
-- Tech Stack Areas: Web technologies, ExoPlayer web wrapper if applicable
-- Email: \[to be filled\]
-- Mobile: +989192966001
-- Telegram: @Samanmgh
-- Telegram ID: 121373996
-
-### Navid Yazdani
-
-- name-fa: نوید
-- family-fa: یزدانی
-- Role: Frontend Member
-- Organization: Frontend Team
-- Domain Ownership: Frontend implementation support
-- Tech Stack Areas: Web/frontend development
-- Email: \[to be filled\]
-- Mobile: +989903616001
-- Telegram: @Navidoevsky
-- Telegram ID: 144317997
-
-### Mahsa Yadegari
-
-- name-fa: مهسا
-- family-fa: یادگاری
-- Role: Frontend Member
-- Organization: Frontend Team
-- Domain Ownership: Frontend implementation support
-- Tech Stack Areas: Web/frontend development
-- Email: \[to be filled\]
-- Mobile: +989358412954
-- Telegram: @Mahsa_ydr
-- Telegram ID: 82068896
-
-## QA
-
-### Amir Sarshad
-
-- name-fa: امیر
-- family-fa: سرشاد
-- Role: Manual Tester
-- Organization: QA
-- Domain Ownership: \[to be filled\]
-- Tech Stack Areas: \[to be filled\]
-- Email: \[to be filled\]
-- Mobile: +989331152021
-- Telegram: @amirsarshad
-- Telegram ID: 58325936
-
-## Mobile Team
-
-### Hossein Tahmasebi
-
-- name-fa: حسین
-- family-fa: طهماسبی
-- Role: Mobile Lead / Android
-- Organization: Mobile Team
-- Domain Ownership: Android player, ExoPlayer architecture, offline delivery, KMP migration path
-- Tech Stack Areas: Android/iOS native development, video player SDKs
-- Email: \[to be filled\]
-- Mobile: +989126948122
-- Telegram: @MHTahmasebi
-- Telegram ID: 457179630
-
-### Milad Shabani
-
-- name-fa: میلاد
-- family-fa: شعبانی
-- Role: Android Developer / Remote
-- Organization: Mobile Team
-- Domain Ownership: Android TV
-- Tech Stack Areas: Android native development
-- Email: \[to be filled\]
-- Mobile: +436607792902
-- Telegram: @miilad9005
-- Telegram ID: 199325827
-
-### Benyamin Mokhtarpour (Benji)
-
-- name-fa: بنیامین
-- family-fa: مختارپور
-- Also known as: Benyamin Mokhtari
-- Role: iOS Developer & KMP Project Owner
-- Organization: Mobile Team
-- Domain Ownership: iOS player implementation, Kotlin Multiplatform architecture, Hermes automation integration
-- Tech Stack Areas: iOS native development, KMP cross-platform codebase, AI automation tools
-- Email: \[to be filled\]
-- Mobile: +989370384415
-- Telegram: @adolfbenji2017
-- Telegram ID: 338214431
-
-## DevOps
-
-### Mohammad Ziaee
-
-- name-fa: محمد
-- family-fa: ضیایی
-- Also known as: Mohammad DevOps
-- Role: Full-stack / DevOps
-- Organization: DevOps
-- Domain Ownership: Payment integration, CDN configuration, DevOps infrastructure
-- Tech Stack Areas: Payments, CDN, CI/CD pipelines
-- Email: \[to be filled\]
-- Mobile: +989365972227
-- Telegram: @mzDAN
-- Telegram ID: 179982076
-
-### Erfan Mazraei
-
-- name-fa: عرفان
-- family-fa: مزرعی
-- Role: DevOps
-- Organization: DevOps
-- Domain Ownership: CI/CD pipelines, build automation, release management
-- Tech Stack Areas: Build tools, testing automation
-- Email: \[to be filled\]
-- Mobile: +989127167902
-- Telegram: @erfanmazraei
-- Telegram ID: 804179447
-
-## Infra
-
-### Shahrokh Nemati
-
-- name-fa: شاهرخ
-- family-fa: نعمتی
-- Role: Infrastructure Lead
-- Organization: Infra
-- Domain Ownership: Server infrastructure, deployment strategy, scaling architecture, storage, virtualization
-- Tech Stack Areas: Cloud infrastructure, Kubernetes, monitoring
-- Email: \[to be filled\]
-- Mobile: +989123791933
-- Telegram: @sharokhnemati
-- Telegram ID: 5406159254
-
-### Sina Hosseini
-
-- name-fa: سینا
-- family-fa: حسینی
-- Role: Infrastructure Member
-- Organization: Infra
-- Domain Ownership: Infrastructure implementation support
-- Tech Stack Areas: Infrastructure and operations
-- Email: \[to be filled\]
-- Mobile: +989360355371
-- Telegram: @saed_hosseini
-- Telegram ID: 87954773
-
-### Omid Zargari
-
-- name-fa: امید
-- family-fa: زرگری
-- Role: Infrastructure Member
-- Organization: Infra
-- Domain Ownership: Infrastructure implementation support
-- Tech Stack Areas: Infrastructure and operations
-- Email: \[to be filled\]
-- Mobile: +989378187145
-- Telegram: @dimorig
-- Telegram ID: 89871065
-
-## DBA
-
-### Amin Sobati
-
-- name-fa: امین
-- family-fa: ثباتی
-- Role: DBA
-- Organization: Database / DBA
-- Domain Ownership: Database schema, migrations, data modeling
-- Tech Stack Areas: SQL/NoSQL databases, query optimization
-- Email: \[to be filled\]
-- Mobile: +989123252344
-- Telegram: @AminSobati
-- Telegram ID: \[to be filled\]
-
-## Management / International Dept
-
-### Hessampour
-
-- name-fa: \[to be filled\]
-- family-fa: حسام‌پور
-- Role: International Dept
-- Organization: Management / International Dept
-- Domain Ownership: \[to be filled\]
-- Tech Stack Areas: \[to be filled\]
-- Email: \[to be filled\]
-- Mobile: \[full mobile to be filled\]
-- Telegram: \[to be filled\]
-- Telegram ID: \[to be filled\]
-
----
+CONTACT | name=Farzan Dalaee | name-fa=فرزان | family-fa=دالایی | role=CTO/CPO | organization=CTO/CPO | email=farzan.dalaee@gmail.com | mobile=+989121938710 | telegram=@farzandalaee | telegram-id=88227782
+CONTACT | name=Masih Akbari | name-fa=مسیح | family-fa=اکبری | role=Backend Lead / Tech Lead | organization=Tech Lead, Backend Team | domain-ownership=API endpoints, backend services, data models, scalability | tech-stack-areas=Server-side logic, database design, APIs | email=[to be filled] | mobile=+989107436879 | telegram=@devmasih | telegram-id=85436901
+CONTACT | name=Parsa Khodaverdi | name-fa=پارسا | family-fa=خداوردی | role=Junior Backend Developer | organization=Backend Team | reports-to-or-works-with=Masih Akbari | domain-ownership=Backend development support | tech-stack-areas=Server-side logic, APIs, backend services | email=[to be filled] | mobile=[full mobile to be filled] | telegram=[to be filled] | telegram-id=[to be filled]
+CONTACT | name=Kamran Abdi | name-fa=کامران | family-fa=عبدی | role=Payments Domain Owner | organization=Backend Team | domain-ownership=Subscription flows, payment gateways, reconciliation | tech-stack-areas=Payment processing, billing logic | email=[to be filled] | mobile=+989129322847 | telegram=@Ryan_2013 | telegram-id=1056305279
+CONTACT | name=Mohammad Allah Verdi | name-fa=محمد | family-fa=الله‌وردی | aliases=Mohammad CDN | role=CDN Manager | organization=Backend Team | domain-ownership=Content delivery network, transcoding pipeline, media storage | tech-stack-areas=CDN providers, video processing, storage | email=[to be filled] | mobile=+989195355443 | telegram=@SoftDevelopment | telegram-id=50936596
+CONTACT | name=Saman Maghsodian | name-fa=سامان | family-fa=مقصودیان | role=Frontend Lead | organization=Frontend Team | domain-ownership=Web player implementation, React frontend architecture | tech-stack-areas=Web technologies, ExoPlayer web wrapper if applicable | email=[to be filled] | mobile=+989192966001 | telegram=@Samanmgh | telegram-id=121373996
+CONTACT | name=Navid Yazdani | name-fa=نوید | family-fa=یزدانی | role=Frontend Member | organization=Frontend Team | domain-ownership=Frontend implementation support | tech-stack-areas=Web/frontend development | email=[to be filled] | mobile=+989903616001 | telegram=@Navidoevsky | telegram-id=144317997
+CONTACT | name=Mahsa Yadegari | name-fa=مهسا | family-fa=یادگاری | role=Frontend Member | organization=Frontend Team | domain-ownership=Frontend implementation support | tech-stack-areas=Web/frontend development | email=[to be filled] | mobile=+989358412954 | telegram=@Mahsa_ydr | telegram-id=82068896
+CONTACT | name=Amir Sarshad | name-fa=امیر | family-fa=سرشاد | role=Manual Tester | organization=QA | domain-ownership=[to be filled] | tech-stack-areas=[to be filled] | email=[to be filled] | mobile=+989331152021 | telegram=@amirsarshad | telegram-id=58325936
+CONTACT | name=Hossein Tahmasebi | name-fa=حسین | family-fa=طهماسبی | role=Mobile Lead / Android | organization=Mobile Team | domain-ownership=Android player, ExoPlayer architecture, offline delivery, KMP migration path | tech-stack-areas=Android/iOS native development, video player SDKs | email=[to be filled] | mobile=+989126948122 | telegram=@MHTahmasebi | telegram-id=457179630
+CONTACT | name=Milad Shabani | name-fa=میلاد | family-fa=شعبانی | role=Android Developer / Remote | organization=Mobile Team | domain-ownership=Android TV | tech-stack-areas=Android native development | email=[to be filled] | mobile=+436607792902 | telegram=@miilad9005 | telegram-id=199325827
+CONTACT | name=Benyamin Mokhtarpour (Benji) | name-fa=بنیامین | family-fa=مختارپور | aliases=Benyamin Mokhtari | role=iOS Developer & KMP Project Owner | organization=Mobile Team | domain-ownership=iOS player implementation, Kotlin Multiplatform architecture, Hermes automation integration | tech-stack-areas=iOS native development, KMP cross-platform codebase, AI automation tools | email=[to be filled] | mobile=+989370384415 | telegram=@adolfbenji2017 | telegram-id=338214431
+CONTACT | name=Mohammad Ziaee | name-fa=محمد | family-fa=ضیایی | aliases=Mohammad DevOps | role=Full-stack / DevOps | organization=DevOps | domain-ownership=Payment integration, CDN configuration, DevOps infrastructure | tech-stack-areas=Payments, CDN, CI/CD pipelines | email=[to be filled] | mobile=+989365972227 | telegram=@mzDAN | telegram-id=179982076
+CONTACT | name=Erfan Mazraei | name-fa=عرفان | family-fa=مزرعی | role=DevOps | organization=DevOps | domain-ownership=CI/CD pipelines, build automation, release management | tech-stack-areas=Build tools, testing automation | email=[to be filled] | mobile=+989127167902 | telegram=@erfanmazraei | telegram-id=804179447
+CONTACT | name=Shahrokh Nemati | name-fa=شاهرخ | family-fa=نعمتی | role=Infrastructure Lead | organization=Infra | domain-ownership=Server infrastructure, deployment strategy, scaling architecture, storage, virtualization | tech-stack-areas=Cloud infrastructure, Kubernetes, monitoring | email=[to be filled] | mobile=+989123791933 | telegram=@sharokhnemati | telegram-id=5406159254
+CONTACT | name=Sina Hosseini | name-fa=سینا | family-fa=حسینی | role=Infrastructure Member | organization=Infra | domain-ownership=Infrastructure implementation support | tech-stack-areas=Infrastructure and operations | email=[to be filled] | mobile=+989360355371 | telegram=@saed_hosseini | telegram-id=87954773
+CONTACT | name=Omid Zargari | name-fa=امید | family-fa=زرگری | role=Infrastructure Member | organization=Infra | domain-ownership=Infrastructure implementation support | tech-stack-areas=Infrastructure and operations | email=[to be filled] | mobile=+989378187145 | telegram=@dimorig | telegram-id=89871065
+CONTACT | name=Amin Sobati | name-fa=امین | family-fa=ثباتی | role=DBA | organization=Database / DBA | domain-ownership=Database schema, migrations, data modeling | tech-stack-areas=SQL/NoSQL databases, query optimization | email=[to be filled] | mobile=+989123252344 | telegram=@AminSobati | telegram-id=[to be filled]
+CONTACT | name=Hessampour | name-fa=[to be filled] | family-fa=حسام‌پور | role=International Dept | organization=Management / International Dept | domain-ownership=[to be filled] | tech-stack-areas=[to be filled] | email=[to be filled] | mobile=[full mobile to be filled] | telegram=[to be filled] | telegram-id=[to be filled]
 
 Notes:
-
 - This file replaces `resources/filmnet/teams-organization.md` as the single source of truth for team organization and contact data.
-- Update this file whenever team membership, ownership, roles, or contact details change.
+- Keep each contact as exactly one line so agents can grep by name, alias, role, organization, Telegram username/ID, or ownership keyword.
 - Internal FilmNet message drafts should use this file to resolve recipient identity, Persian greeting name, ownership, and contact channel.

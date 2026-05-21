@@ -6,7 +6,7 @@ This workflow defines how the FilmNet assistant hands approved communications to
 
 FilmNet assistant / Farzan assistant:
 - owns Farzan interaction
-- identifies recipient from `resources/filmnet/team-contacts.md`
+- identifies recipient from a single matching CONTACT line in `resources/filmnet/team-contacts.md`
 - drafts message content
 - gets Farzan approval before sending
 - creates/updates the FilmNet Task ID in the task index `state/active-tasks.md` and the full per-task file under `state/active-tasks/`

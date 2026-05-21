@@ -104,6 +104,39 @@ def save_state(state: Dict[str, Any], path: Path = STATE_PATH) -> None:
     tmp.replace(path)
 
 
+def contact_key(raw_key: str) -> str:
+    return raw_key.strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def clean_contact_value(value: str) -> str:
+    return value.strip().replace("\\[", "[").replace("\\]", "]")
+
+
+def parse_contact_line(raw: str) -> Optional[Dict[str, str]]:
+    """Parse one-line CONTACT records from resources/filmnet/team-contacts.md."""
+    line = raw.strip()
+    if not line.startswith("CONTACT |"):
+        return None
+    contact: Dict[str, str] = {}
+    for part in line.split("|")[1:]:
+        if "=" not in part:
+            continue
+        raw_key, raw_value = part.split("=", 1)
+        key = contact_key(raw_key)
+        value = clean_contact_value(raw_value)
+        if key == "telegram":
+            contact["telegram_username"] = value
+        elif key == "name_fa":
+            contact["name_fa"] = value
+        elif key == "family_fa":
+            contact["family_fa"] = value
+        elif key == "telegram_id":
+            contact["telegram_id"] = value
+        else:
+            contact[key] = value
+    return contact
+
+
 def parse_team_contacts(path: Path = TEAM_CONTACTS) -> Dict[str, Dict[str, str]]:
     """Return contacts keyed by Telegram ID as string."""
     if not path.exists():
@@ -111,6 +144,12 @@ def parse_team_contacts(path: Path = TEAM_CONTACTS) -> Dict[str, Dict[str, str]]
     contacts: Dict[str, Dict[str, str]] = {}
     current: Optional[Dict[str, str]] = None
     for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line_contact = parse_contact_line(raw)
+        if line_contact is not None:
+            telegram_id = line_contact.get("telegram_id", "")
+            if telegram_id and "to be filled" not in telegram_id:
+                contacts[telegram_id] = line_contact
+            continue
         if raw.startswith("### "):
             if current and current.get("telegram_id") and "to be filled" not in current["telegram_id"]:
                 contacts[current["telegram_id"]] = current
@@ -121,8 +160,8 @@ def parse_team_contacts(path: Path = TEAM_CONTACTS) -> Dict[str, Dict[str, str]]
         m = re.match(r"-\s*([^:]+):\s*(.*)$", raw.strip())
         if not m:
             continue
-        key = m.group(1).strip().lower().replace(" ", "_").replace("-", "_")
-        value = m.group(2).strip().replace("\\[", "[").replace("\\]", "]")
+        key = contact_key(m.group(1))
+        value = clean_contact_value(m.group(2))
         if key == "telegram_id":
             current["telegram_id"] = value
         elif key == "telegram":

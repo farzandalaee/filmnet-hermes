@@ -16,7 +16,7 @@ Canonical handoff schema, validation rules, event shapes, and runtime implementa
 
 ## Source of truth
 
-Recipient identity and contact data come from `resources/filmnet/team-contacts.md`. Do not maintain a separate team directory.
+Recipient identity and contact data come from one-line CONTACT records in `resources/filmnet/team-contacts.md`. Grep/search by recipient name, alias, Telegram username/ID, role, or ownership keyword; do not maintain a separate team directory.
 
 ## Language and content rules
 

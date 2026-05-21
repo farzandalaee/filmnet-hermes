@@ -94,6 +94,17 @@ def load_farzan_chat_id() -> Optional[str]:
         if home_channel.lstrip("-").isdigit():
             return home_channel
     if TEAM_CONTACTS.exists():
+        for raw in TEAM_CONTACTS.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if line.startswith("CONTACT |") and "name=Farzan Dalaee" in line:
+                for part in line.split("|")[1:]:
+                    if "=" not in part:
+                        continue
+                    key, value = part.split("=", 1)
+                    if key.strip().lower().replace("-", "_") == "telegram_id":
+                        value = value.strip().replace("\\[", "[").replace("\\]", "]")
+                        if value and "to be filled" not in value.lower():
+                            return value
         text = TEAM_CONTACTS.read_text(encoding="utf-8", errors="ignore")
         m = re.search(r"###\s+Farzan Dalaee\n(?:.*\n)*?- Telegram ID:\s*([^\n]+)", text)
         if m:

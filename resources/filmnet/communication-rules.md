@@ -10,7 +10,7 @@ Use English only if Farzan explicitly says `write in English`, `English version`
 
 ## Recipient identity
 
-Use `resources/filmnet/team-contacts.md` as the single source of truth for recipient identity, `name-fa`, `family-fa`, role, organization, ownership, Telegram username/ID, email, mobile.
+Use `resources/filmnet/team-contacts.md` as the single source of truth for recipient identity, `name-fa`, `family-fa`, role, organization, ownership, Telegram username/ID, email, mobile. The file uses one CONTACT record per line; grep/search by name, alias, username, role, or ownership keyword and read only the matching line.
 
 For Persian greetings, use `name-fa` when available.
 
