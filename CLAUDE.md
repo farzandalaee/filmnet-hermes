@@ -1,33 +1,14 @@
-# FilmNet Hermes / Claude Code Bridge
+# Claude Code Bridge
 
-This repository is Farzan's FilmNet Hermes workspace. Claude Code may be invoked by Hermes as a delegated coding/reasoning worker through local bridge scripts.
+This file is loaded only when Claude Code is invoked by Hermes through the local bridge scripts. The full FilmNet operating rules live in `agents/assistant.md`; read that for any FilmNet work.
 
-## Role Split
+## Role
 
 - Hermes is Farzan's primary orchestrator and source-of-truth keeper.
 - Claude Code is a delegated worker for analysis, coding, refactoring, reviews, and structured handoff notes.
-- Farzan communicates with Hermes first. Claude Code should return factual results to bridge output files/stdout; it should not message FilmNet team members.
+- Farzan communicates with Hermes first. Claude Code returns factual results to bridge output files/stdout; it does not message FilmNet team members.
 
-## Source of Truth
-
-Before FilmNet-related work, read:
-1. `AGENTS.md`
-2. `agents/assistant.md`
-3. `state/active-tasks.md`
-4. Relevant files under `resources/filmnet/`
-
-Do not rely on chat history for FilmNet task state.
-
-## Safety and Communication
-
-- Do not send FilmNet messages automatically.
-- Draft internal FilmNet messages in Persian/Farsi unless Farzan explicitly asks for English.
-- Use `resources/filmnet/team-contacts.md` as the single source of truth for team identity/contact/ownership.
-- Do not recreate `resources/filmnet/teams-organization.md`.
-- Do not mask mobile numbers in `team-contacts.md`; use full numbers or `[full mobile to be filled]`.
-- Do not invent FilmNet facts. Mark missing details as `[to be filled]`.
-
-## Bridge Output Expectations
+## Bridge output expectations
 
 When invoked by Hermes, return:
 - concise summary
@@ -37,4 +18,6 @@ When invoked by Hermes, return:
 - blockers or required Farzan decision
 - suggested next step
 
-For code changes, avoid committing or pushing unless explicitly requested by Farzan through Hermes.
+For code changes, do not commit or push unless Farzan explicitly requests it through Hermes.
+
+Bridge setup, usage examples, and recommended `--allowed-tools` defaults: `resources/filmnet/claude-code-bridge.md`.

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Assistant-side watcher for FilmNet Messenger events.
 
-Reads messenger-events.jsonl, updates the related task sections in
-state/active-tasks.md with an auto-generated Messenger summary block, and notifies
+Reads messenger-events.jsonl, updates related per-task files under
+state/active-tasks/ with an auto-generated Messenger summary block, and notifies
 Farzan on Telegram when important events arrive.
 """
 
@@ -22,12 +22,18 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 ROOT = Path("/Users/farzan/filmnet-hermes")
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from state import task_store  # noqa: E402
+
 PROFILE_ENV = Path("/Users/farzan/.hermes/profiles/messenger/.env")
 GLOBAL_ENV = Path("/Users/farzan/.hermes/.env")
 REQUESTS_PATH = ROOT / "inbox/messenger-send-requests.jsonl"
 EVENTS_PATH = ROOT / "inbox/messenger-events.jsonl"
 STATE_PATH = ROOT / "inbox/messenger-assistant-state.json"
-ACTIVE_TASKS_PATH = ROOT / "state/active-tasks.md"
+ACTIVE_TASKS_INDEX = ROOT / "state/active-tasks.md"
+ACTIVE_TASKS_DIR = ROOT / "state/active-tasks"
 TEAM_CONTACTS = ROOT / "resources/filmnet/team-contacts.md"
 
 
@@ -282,28 +288,39 @@ def upsert_messenger_block(section_body: str, block: str) -> str:
 
 
 def update_task_file(events: List[Dict[str, Any]], dry_run: bool = False) -> List[str]:
-    if not ACTIVE_TASKS_PATH.exists():
-        return []
     requests_by_task = load_requests_by_task()
-    text = ACTIVE_TASKS_PATH.read_text(encoding="utf-8")
-    updated_task_ids: List[str] = []
+    relevant_task_ids = set(requests_by_task)
+    relevant_task_ids.update(str(e.get("task_id") or "").strip() for e in events if e.get("task_id"))
+    relevant_task_ids.discard("")
+    if not relevant_task_ids:
+        return []
 
-    def repl(match: re.Match[str]) -> str:
-        header, task_id, body = match.group(1), match.group(2), match.group(3)
-        if task_id not in requests_by_task and task_id not in {str(e.get("task_id") or "").strip() for e in events if e.get("task_id")}:
-            return match.group(0)
+    if not ACTIVE_TASKS_DIR.exists() and ACTIVE_TASKS_INDEX.exists():
+        task_store.migrate_legacy_file(ACTIVE_TASKS_INDEX, ACTIVE_TASKS_DIR, ACTIVE_TASKS_INDEX, "Active Tasks")
+    if not ACTIVE_TASKS_DIR.exists():
+        return []
+
+    updated_task_ids: List[str] = []
+    for task_id in sorted(relevant_task_ids):
+        path = task_store.task_path(ACTIVE_TASKS_DIR, task_id)
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        match = TASK_SECTION_RE.search(text)
+        if not match:
+            continue
+        header, body = match.group(1), match.group(3)
         block = messenger_block_for_task(task_id, requests_by_task.get(task_id, []), events)
         new_body = upsert_messenger_block(body, block)
         new_body = re.sub(r"- Last updated date:\s*[^\n]+", f"- Last updated date: {today_utc()}", new_body, count=1)
-        original_section = header + body
-        new_section = header + new_body
-        if new_section != original_section:
+        new_text = header + new_body
+        if new_text != text:
             updated_task_ids.append(task_id)
-        return new_section
+            if not dry_run:
+                path.write_text(new_text.rstrip() + "\n", encoding="utf-8")
 
-    new_text = TASK_SECTION_RE.sub(repl, text)
-    if not dry_run and new_text != text:
-        ACTIVE_TASKS_PATH.write_text(new_text, encoding="utf-8")
+    if updated_task_ids and not dry_run:
+        task_store.rebuild_index(ACTIVE_TASKS_DIR, ACTIVE_TASKS_INDEX, "Active Tasks")
     return updated_task_ids
 
 
