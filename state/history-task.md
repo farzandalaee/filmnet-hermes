@@ -16,3 +16,5 @@
 - FN-2026-0519-007 — Audit FilmNet Hermes agent token efficiency for jobs
 - FN-2026-0520-011 — Create Hermes skill for Sotoon CDN record CSV export
 - FN-2026-0520-012 — Enhance Sotoon CDN export skill with rate_type and alias resolution
+- FN-2026-0521-001 — Messenger Telegram Test Message to Mohammad Ziaee (DevOps)
+- FN-2026-0521-002 — Messenger Telegram test message to Farzan
