@@ -1,100 +1,14 @@
 # FilmNet Workflows
 
-Reusable workflows for FilmNet Hermes agents.
+Reusable workflows for FilmNet Hermes agents. Operating rules (task management, status reports, draft format, source-of-truth list) live in `agents/assistant.md`; this file holds only the step-by-step procedures.
 
-## 1. Source-of-Truth Workflow
+## 1. Production incident follow-up
 
-Before FilmNet work:
-1. Read `state/active-tasks.md`.
-2. Read relevant files under `resources/filmnet/`.
-3. For internal messages, read `resources/filmnet/communication-rules.md` and `resources/filmnet/team-contacts.md`.
-
-Do not rely on chat history for active task state.
-Do not recreate `resources/filmnet/teams-organization.md`; it was merged into `team-contacts.md` and removed.
-
-## 2. Task Persistence Workflow
-
-When creating or reusing a Task ID, persist it in `state/active-tasks.md`.
-
-If `state/active-tasks.md` is missing, deleted, or empty:
-1. Recreate the file.
-2. Add `# Active Tasks` as the title.
-3. Save the task there.
-
-A Task ID shown to Farzan is invalid unless it is saved in `state/active-tasks.md`.
-
-Task record fields:
-- Title
-- Status
-- Recipient
-- Channel
-- Topic
-- Draft summary
-- Next step
-- Last updated date
-
-## 3. Status Report Workflow
-
-Use this workflow when Farzan says `status`, `show active tasks`, or asks what is pending.
+Use for production issues, outages, major bugs, CDN problems, playback issues, payment issues, or customer-impacting incidents.
 
 Steps:
-1. Read `state/active-tasks.md` for active / waiting / pending / draft work.
-2. Show all active / waiting / pending / draft tasks with Task ID, title, status, and next step.
-3. Do not read `state/history-task.md` for normal status reports.
-4. Do not show completed tasks in normal status reports.
-5. Read `state/history-task.md` only if Farzan explicitly asks for completed tasks, completed history, archived tasks, or historical status.
-
-## 3.1 Completed Task Archive Workflow
-
-Purpose: keep `state/active-tasks.md` small and cheap to read.
-
-Rules:
-1. `state/active-tasks.md` should contain only active, waiting, pending, draft, and in-progress tasks.
-2. `state/history-task.md` stores completed tasks.
-3. Run `python3 state/archive-completed-tasks.py` daily, or immediately after marking tasks completed.
-4. Do not delete completed task history; move it to the history file.
-5. For status reports, consult `history-task.md` only for today's completed tasks or the last 5 recent completions.
-
-## 4. Message Draft Workflow
-
-Use this workflow before sending or forwarding any external or team message.
-
-Rules:
-1. Do not send messages automatically.
-2. Draft the message first.
-3. Use Persian/Farsi for internal FilmNet messages unless Farzan explicitly asks for English.
-4. Use `name-fa` from `team-contacts.md` for Persian greetings when available.
-5. Show Farzan the draft and ask for approval.
-6. If Farzan asks for changes, update the draft and ask again.
-7. If Farzan says `yes` or `ok`, apply it only to the latest active question.
-
-Draft response format:
-
-```text
-Task: <Task ID>
-Title: <Task title>
-Status: Draft waiting for Farzan approval
-Recipient: <recipient>
-Channel: <Telegram/Slack/Email/etc>
-
-Draft:
-<message>
-
-Approval: Should I keep this draft, edit it, or prepare it for sending?
-```
-
-## 5. Production Incident Follow-Up Workflow
-
-Use this workflow for production issues, outages, major bugs, CDN problems, playback issues, payment issues, or customer-impacting incidents.
-
-Steps:
-1. Find or create a task in `state/active-tasks.md`.
-2. Capture only known facts:
-   - what happened
-   - affected service or product area
-   - start time, if known
-   - customer/business impact, if known
-   - current owner or team, if known
+1. Find or create a task by reading the index `state/active-tasks.md`, then reading/updating only the relevant full task file under `state/active-tasks/`.
+2. Capture only known facts: what happened, affected service or product area, start time, customer/business impact, current owner or team.
 3. Identify missing information instead of guessing.
 4. Draft follow-up questions for the responsible team.
 5. Track next action, owner, and status in the task.
@@ -104,40 +18,42 @@ The follow-up draft must ask about:
 1. root cause
 2. current status and whether it is resolved
 3. user/business impact
-4. next prevention action such as fix, monitoring, or alert
+4. next prevention action (fix, monitoring, alert)
 5. other involved owner if relevant
 
 Do not ask a generic preflight questionnaire before drafting a standard incident follow-up.
 
-## 6. Product Request Workflow
+## 2. Product request
 
-Use this workflow when Farzan wants to define, clarify, prioritize, or follow up on a product idea or request.
+Use when Farzan wants to define, clarify, prioritize, or follow up on a product idea or request.
 
 Steps:
-1. Find or create a task in `state/active-tasks.md`.
+1. Find or create a task by reading the index `state/active-tasks.md`, then reading/updating only the relevant full task file under `state/active-tasks/`.
 2. Write the request in simple language.
-3. Capture:
-   - goal
-   - user or business problem
-   - affected platform or service
-   - owner or team, if known
-   - open questions
+3. Capture: goal, user/business problem, affected platform or service, owner or team, open questions.
 4. Draft a short requirement or message for the relevant team.
 5. Ask Farzan to approve or edit the draft before sharing.
 
-## 7. Documentation Update Workflow
+## 3. Documentation update
 
-Use this workflow when new FilmNet knowledge should become source of truth.
+Use when new FilmNet knowledge should become source of truth.
 
 Steps:
-1. Decide which source-of-truth file should be updated:
-   - `resources/filmnet/team-contacts.md`
-   - `resources/filmnet/communication-rules.md`
-   - `resources/filmnet/workflows.md`
-   - `resources/filmnet/services.md`
-   - `state/active-tasks.md`
+1. Decide which source-of-truth file should be updated: `team-contacts.md`, `communication-rules.md`, `workflows.md`, `services.md`, the active index `state/active-tasks.md`, or a full task file under `state/active-tasks/`.
 2. Keep the update small and clear.
-3. Do not invent missing details.
-4. If information is uncertain, mark it as `[to be filled]` or ask Farzan.
-5. Prefer simple Markdown over complex systems.
-6. After editing, verify references do not point to removed files.
+3. Do not invent missing details. If uncertain, mark `[to be filled]` or ask Farzan.
+4. Prefer simple Markdown over complex systems.
+5. After editing, verify references do not point to removed files.
+
+## 4. Completed-task archive
+
+Purpose: keep `state/active-tasks.md` and `state/history-task.md` as cheap-to-read indexes.
+
+Rules:
+1. `state/active-tasks.md` contains only active Task IDs and titles.
+2. Full active, waiting, pending, draft, and in-progress task records live in `state/active-tasks/<Task ID>.md`.
+3. `state/history-task.md` contains only completed Task IDs and titles.
+4. Full completed task records live in `state/history-task/<Task ID>.md`.
+5. Run `python3 state/archive-completed-tasks.py` daily, or immediately after marking tasks completed.
+6. Do not delete completed task history; move per-task files to the history directory.
+7. For normal status reports, read only the active index unless Farzan asks for details. Consult `history-task.md` and `state/history-task/` only when Farzan explicitly asks for completed/history/archive status.
