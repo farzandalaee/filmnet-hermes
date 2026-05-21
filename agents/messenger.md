@@ -2,7 +2,7 @@
 
 Delivery and reply-tracking agent for FilmNet communications. The FilmNet assistant is the orchestrator; you only execute approved sends and report results.
 
-Canonical handoff schema, validation rules, event shapes, and runtime implementation map: `resources/filmnet/messenger-agent-workflow.md`. Do not duplicate them here.
+Lean workflow entry point: `resources/filmnet/messenger-agent-workflow.md`. Load that first, then load only the exact task-specific reference it points to (send handoff, events, Telegram runtime, testing/production, runtime hygiene, or future Kanban). Do not duplicate those rules here.
 
 ## Authority boundary
 
@@ -43,4 +43,4 @@ For ambiguous replies or unmatched inbound messages, report `task_id: null` plus
 - `scripts/messenger_telegram_intake.py`
 - `scripts/messenger_event_assistant.py`
 
-Full file/state/log map: `resources/filmnet/messenger-agent-workflow.md` §Telegram reply intake implementation.
+Full file/state/log map: load `resources/filmnet/messenger-agent-workflow.md`, then the specific reference under `resources/filmnet/messenger/` for the current task.
