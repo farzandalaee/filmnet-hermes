@@ -1,6 +1,6 @@
 # FilmNet Communication Rules
 
-Drafting rules for internal FilmNet messages. Task workflow and approval flow live in `agents/assistant.md`; this file holds only the drafting specifics.
+Drafting rules for internal FilmNet messages. Task workflow and the autonomy & review-window flow live in `agents/assistant.md`; this file holds only the drafting specifics.
 
 ## Default language
 

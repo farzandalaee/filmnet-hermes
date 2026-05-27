@@ -32,7 +32,7 @@ Steps:
 2. Write the request in simple language.
 3. Capture: goal, user/business problem, affected platform or service, owner or team, open questions.
 4. Draft a short requirement or message for the relevant team.
-5. Ask Farzan to approve or edit the draft before sharing.
+5. If it should go out, queue it under the review window and announce it (Autonomy & review-window protocol in `agents/assistant.md`); do not block waiting for approval.
 
 ## 3. Documentation update
 

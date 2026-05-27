@@ -4,6 +4,14 @@
 Reads approved send requests from inbox/messenger-send-requests.jsonl, sends exact
 approved Telegram messages, records delivery events to inbox/messenger-events.jsonl,
 and sends exact pre-approved follow-ups for non-responders when configured.
+
+Reliability properties:
+- A single corrupt JSONL line is skipped, never fatal (see messenger_common.read_jsonl).
+- Initial sends are capped at max_send_attempts and short-circuit on permanent
+  errors (blocked / never-started / chat-not-found), so an unreachable recipient
+  produces exactly one terminal failure instead of an infinite retry/notify loop.
+- A per-contact reachability cache (inbox/telegram-reachability.json) records who
+  can be DM'd so the assistant can warn before scheduling.
 """
 
 from __future__ import annotations
@@ -16,112 +24,80 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-ROOT = Path("/Users/farzan/filmnet-hermes")
-PROFILE_ENV = Path("/Users/farzan/.hermes/profiles/messenger/.env")
-GLOBAL_ENV = Path("/Users/farzan/.hermes/.env")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import messenger_common as mc  # noqa: E402
+
+ROOT = mc.ROOT
 REQUESTS_PATH = ROOT / "inbox/messenger-send-requests.jsonl"
 EVENTS_PATH = ROOT / "inbox/messenger-events.jsonl"
+CONTROL_PATH = ROOT / "inbox/messenger-control.jsonl"
 STATE_PATH = ROOT / "inbox/messenger-telegram-dispatcher-state.json"
 
+DEFAULT_MAX_INITIAL_ATTEMPTS = 3
+DEFAULT_REVIEW_WINDOW_MINUTES = 10
+DEFAULT_ESCALATE_AFTER_HOURS = 48
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+# Telegram error fragments that will never succeed on retry for the same chat.
+PERMANENT_ERROR_MARKERS = (
+    "chat not found",
+    "bot was blocked",
+    "bot can't initiate",
+    "bot can`t initiate",
+    "user is deactivated",
+    "user not found",
+    "peer_id_invalid",
+    "have no rights to send",
+    "forbidden: user is deactivated",
+)
 
 
-def parse_iso8601(value: Optional[str]) -> Optional[datetime]:
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
+def is_permanent_send_error(message: str) -> bool:
+    low = (message or "").lower()
+    return any(marker in low for marker in PERMANENT_ERROR_MARKERS)
 
 
-def load_env_file(path: Path) -> Dict[str, str]:
-    env: Dict[str, str] = {}
-    if not path.exists():
-        return env
-    for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
+def load_control_state(control_rows: Iterable[Dict[str, Any]], authorized_user_id: Optional[str]) -> Dict[str, Dict[str, Any]]:
+    """Collapse control commands (cancel / send_now / edit) into per-request state.
+
+    Commands are honored only from the authorized control user (Farzan); a row
+    from anyone else is ignored so a team member can never steer a send. Later
+    commands override earlier ones.
+    """
+    state: Dict[str, Dict[str, Any]] = {}
+    for row in control_rows:
+        request_id = str(row.get("request_id") or "").strip()
+        if not request_id:
             continue
-        key, value = line.split("=", 1)
-        env[key.strip()] = value.strip().strip('"').strip("'")
-    return env
+        issued_by = str(row.get("issued_by") or "").strip()
+        if authorized_user_id and issued_by and issued_by != authorized_user_id:
+            continue
+        command = str(row.get("command") or "").strip().lower()
+        st = state.setdefault(request_id, {"canceled": False, "send_now": False, "message": None, "send_after": None})
+        if command == "cancel":
+            st["canceled"] = True
+            st["send_now"] = False
+        elif command == "send_now":
+            st["canceled"] = False
+            st["send_now"] = True
+        elif command == "edit":
+            if row.get("message"):
+                st["message"] = str(row.get("message"))
+            if row.get("send_after"):
+                st["send_after"] = str(row.get("send_after"))
+            st["canceled"] = False
+    return state
 
 
-def load_token() -> Optional[str]:
-    env: Dict[str, str] = {}
-    env.update(load_env_file(GLOBAL_ENV))
-    env.update(load_env_file(PROFILE_ENV))
-    return os.environ.get("TELEGRAM_BOT_TOKEN") or env.get("TELEGRAM_BOT_TOKEN")
+def load_state() -> Dict[str, Any]:
+    return mc.load_json_state(STATE_PATH, {"initialized_at": mc.utc_now(), "last_run_at": None})
 
 
-def read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError as exc:
-                raise SystemExit(f"Invalid JSON in {path}:{line_no}: {exc}") from exc
-    return rows
-
-
-def append_jsonl(path: Path, obj: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(obj, ensure_ascii=False, sort_keys=False) + "\n")
-        f.flush()
-        os.fsync(f.fileno())
-
-
-def load_state(path: Path = STATE_PATH) -> Dict[str, Any]:
-    if not path.exists():
-        return {"initialized_at": utc_now(), "last_run_at": None}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {"initialized_at": utc_now(), "last_run_at": None}
-    if not isinstance(data, dict):
-        return {"initialized_at": utc_now(), "last_run_at": None}
-    return data
-
-
-def save_state(state: Dict[str, Any], path: Path = STATE_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(path)
-
-
-def normalize_recipients(request: Dict[str, Any]) -> List[Dict[str, Any]]:
-    recipients = request.get("recipients")
-    if isinstance(recipients, list) and recipients:
-        return [r for r in recipients if isinstance(r, dict)]
-    recipient = request.get("recipient")
-    if isinstance(recipient, dict) and recipient:
-        return [recipient]
-    return []
-
-
-def recipient_key(recipient: Dict[str, Any], recipient_index: int) -> str:
-    telegram_id = str(recipient.get("telegram_id") or "").strip()
-    if telegram_id and "to be filled" not in telegram_id.lower():
-        return telegram_id
-    username = str(recipient.get("telegram_username") or "").strip()
-    if username and "to be filled" not in username.lower():
-        return username
-    return f"recipient_index:{recipient_index}"
+def save_state(state: Dict[str, Any]) -> None:
+    mc.save_json_state(STATE_PATH, state)
 
 
 def validate_request(request: Dict[str, Any]) -> List[str]:
@@ -138,18 +114,17 @@ def validate_request(request: Dict[str, Any]) -> List[str]:
         errors.append("only telegram channel is currently implemented")
     if not str(request.get("message") or "").strip():
         errors.append("message is empty")
-    recipients = normalize_recipients(request)
+    recipients = mc.normalize_recipients(request)
     if not recipients:
         errors.append("recipient or recipients is required")
     for idx, recipient in enumerate(recipients, 1):
         if not str(recipient.get("name") or "").strip():
             errors.append(f"recipient #{idx} missing name")
-        telegram_id = str(recipient.get("telegram_id") or "").strip()
-        username = str(recipient.get("telegram_username") or "").strip()
-        usable_id = telegram_id and "to be filled" not in telegram_id.lower()
-        usable_username = username and "to be filled" not in username.lower()
-        if not usable_id and not usable_username:
-            errors.append(f"recipient #{idx} missing usable Telegram contact")
+        if not mc.usable_telegram_id(recipient):
+            errors.append(
+                f"recipient #{idx} needs a numeric telegram_id "
+                "(a @username alone cannot be used to DM a user)"
+            )
     follow_up = request.get("follow_up")
     if follow_up not in (None, False):
         if not isinstance(follow_up, dict):
@@ -178,7 +153,10 @@ def telegram_send_message(token: str, chat_id: str, text: str, reply_to_message_
         "disable_web_page_preview": True,
     }
     if reply_to_message_id is not None:
-        payload["reply_parameters"] = json.dumps({"message_id": int(reply_to_message_id)})
+        payload["reply_parameters"] = json.dumps({
+            "message_id": int(reply_to_message_id),
+            "allow_sending_without_reply": True,
+        })
     body = urllib.parse.urlencode(payload).encode("utf-8")
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage",
@@ -215,16 +193,20 @@ def index_events(events: Iterable[Dict[str, Any]]) -> Dict[Tuple[str, str, str],
     return index
 
 
-def latest_sent_event(
+def _key_events(
     index: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
     request_id: str,
-    recipient_lookup_key: str,
+    lookup_key: str,
     phase: str,
-    recipient_name: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
-    events = list(index.get((request_id, recipient_lookup_key, phase), []))
+    recipient_name: Optional[str],
+) -> List[Dict[str, Any]]:
+    events = list(index.get((request_id, lookup_key, phase), []))
     if recipient_name:
         events.extend(index.get((request_id, recipient_name, phase), []))
+    return events
+
+
+def latest_sent_event(events: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     sent = [e for e in events if e.get("event") == "delivery_result" and e.get("status") == "sent"]
     if not sent:
         return None
@@ -232,90 +214,125 @@ def latest_sent_event(
     return sent[-1]
 
 
-def reply_received(events: Iterable[Dict[str, Any]], request_id: str, recipient_lookup_key: str, recipient_name: Optional[str] = None) -> bool:
+def reply_received(events: Iterable[Dict[str, Any]], request_id: str, lookup_key: str, recipient_name: Optional[str] = None) -> bool:
     for event in events:
         if event.get("event") != "reply_received":
             continue
         if str(event.get("request_id") or "").strip() != request_id:
             continue
-        sender = event.get("sender") or {}
-        sender_id = str(sender.get("telegram_id") or "").strip()
-        if sender_id and sender_id == recipient_lookup_key:
+        sender_id = str((event.get("sender") or {}).get("telegram_id") or "").strip()
+        if sender_id and sender_id == lookup_key:
             return True
         event_recipient_id = str(event.get("recipient_telegram_id") or "").strip()
-        if event_recipient_id and event_recipient_id == recipient_lookup_key:
+        if event_recipient_id and event_recipient_id == lookup_key:
             return True
         if recipient_name and str(event.get("recipient") or "").strip() == recipient_name:
             return True
     return False
 
 
-def attempts_sent(
-    index: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
-    request_id: str,
-    recipient_lookup_key: str,
-    phase: str,
-    recipient_name: Optional[str] = None,
-) -> int:
-    events = list(index.get((request_id, recipient_lookup_key, phase), []))
-    if recipient_name:
-        events.extend(index.get((request_id, recipient_name, phase), []))
-    sent = [e for e in events if e.get("event") == "delivery_result" and e.get("status") == "sent"]
-    return len(sent)
-
-
-def send_for_request(token: str, request: Dict[str, Any], events_index: Dict[Tuple[str, str, str], List[Dict[str, Any]]], dry_run: bool = False) -> int:
+def send_for_request(
+    token: str,
+    request: Dict[str, Any],
+    events_index: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
+    reachability: Dict[str, Any],
+    control: Dict[str, Any],
+    now: datetime,
+    dry_run: bool = False,
+) -> Tuple[int, bool]:
     count = 0
+    reach_changed = False
     request_id = str(request.get("request_id"))
     task_id = str(request.get("task_id"))
     channel = str(request.get("channel"))
-    message = str(request.get("message"))
-    for recipient_index, recipient in enumerate(normalize_recipients(request), 1):
-        lookup_key = recipient_key(recipient, recipient_index)
+    message = str(control.get("message") or request.get("message"))
+    canceled = bool(control.get("canceled"))
+    send_now = bool(control.get("send_now"))
+    effective_send_after = control.get("send_after") or request.get("send_after")
+    try:
+        max_attempts = max(1, int(request.get("max_send_attempts", DEFAULT_MAX_INITIAL_ATTEMPTS)))
+    except Exception:
+        max_attempts = DEFAULT_MAX_INITIAL_ATTEMPTS
+
+    for recipient_index, recipient in enumerate(mc.normalize_recipients(request), 1):
+        lookup_key = mc.recipient_lookup_key(recipient, recipient_index)
         recipient_name = str(recipient.get("name") or "").strip() or None
-        if latest_sent_event(events_index, request_id, lookup_key, "initial", recipient_name=recipient_name):
+        key_events = _key_events(events_index, request_id, lookup_key, "initial", recipient_name)
+
+        if latest_sent_event(key_events):
             continue
+        if any(e.get("event") == "delivery_failed" and e.get("terminal") for e in key_events):
+            continue  # already gave up on this recipient for this request
+
+        failed_attempts = sum(1 for e in key_events if e.get("event") == "delivery_failed")
+        chat_id = mc.usable_telegram_id(recipient)
         event_base = {
             "request_id": request_id,
             "task_id": task_id,
             "recipient": recipient.get("name"),
-            "recipient_telegram_id": str(recipient.get("telegram_id") or "").strip() or None,
+            "recipient_telegram_id": chat_id,
             "recipient_index": recipient_index,
             "channel": channel,
             "phase": "initial",
-            "attempt": 1,
+            "attempt": failed_attempts + 1,
         }
+
+        # Review-window control gating (checked before send so a STOP wins even
+        # at the window boundary).
+        if canceled:
+            if not any(e.get("event") == "send_canceled" for e in key_events):
+                cancel_event = {**event_base, "event": "send_canceled", "status": "canceled", "sent_at": mc.utc_now(), "platform_message_id": None, "error": None, "terminal": True}
+                if dry_run:
+                    print(json.dumps(cancel_event, ensure_ascii=False))
+                else:
+                    mc.append_jsonl(EVENTS_PATH, cancel_event)
+                    events_index.setdefault((request_id, lookup_key, "initial"), []).append(cancel_event)
+                count += 1
+            continue
+        if not send_now and effective_send_after:
+            due_at = mc.parse_iso8601(effective_send_after)
+            if due_at is not None and now < due_at:
+                continue  # still inside the review window
+
         if dry_run:
-            print(json.dumps({**event_base, "event": "delivery_result", "status": "dry_run", "sent_at": utc_now(), "platform_message_id": None, "error": None}, ensure_ascii=False))
+            print(json.dumps({**event_base, "event": "delivery_result", "status": "dry_run", "sent_at": mc.utc_now(), "platform_message_id": None, "error": None}, ensure_ascii=False))
             count += 1
             continue
+
+        if not chat_id:
+            event = {**event_base, "event": "delivery_failed", "status": "failed", "sent_at": mc.utc_now(), "platform_message_id": None, "error": "no usable numeric telegram_id for DM", "permanent": True, "terminal": True}
+            mc.append_jsonl(EVENTS_PATH, event)
+            events_index.setdefault((request_id, lookup_key, "initial"), []).append(event)
+            count += 1
+            continue
+
         try:
-            result = telegram_send_message(token, str(recipient.get("telegram_id") or recipient.get("telegram_username")), message)
-            event = {
-                **event_base,
-                "event": "delivery_result",
-                "status": "sent",
-                "sent_at": utc_now(),
-                "platform_message_id": str(result.get("message_id")) if result.get("message_id") is not None else None,
-                "error": None,
-            }
+            result = telegram_send_message(token, chat_id, message)
+            event = {**event_base, "event": "delivery_result", "status": "sent", "sent_at": mc.utc_now(), "platform_message_id": str(result.get("message_id")) if result.get("message_id") is not None else None, "error": None}
+            reach_changed |= mc.mark_reachability(reachability, chat_id, True)
         except Exception as exc:
-            event = {
-                **event_base,
-                "event": "delivery_failed",
-                "status": "failed",
-                "sent_at": utc_now(),
-                "platform_message_id": None,
-                "error": str(exc),
-            }
-        append_jsonl(EVENTS_PATH, event)
+            err = str(exc)
+            permanent = is_permanent_send_error(err)
+            terminal = permanent or (failed_attempts + 1 >= max_attempts)
+            event = {**event_base, "event": "delivery_failed", "status": "failed", "sent_at": mc.utc_now(), "platform_message_id": None, "error": err, "permanent": permanent, "terminal": terminal}
+            if terminal:
+                reach_changed |= mc.mark_reachability(reachability, chat_id, False, reason=err[:200])
+        mc.append_jsonl(EVENTS_PATH, event)
         events_index.setdefault((request_id, lookup_key, "initial"), []).append(event)
         count += 1
-    return count
+    return count, reach_changed
 
 
-def send_follow_ups(token: str, requests: Iterable[Dict[str, Any]], all_events: List[Dict[str, Any]], events_index: Dict[Tuple[str, str, str], List[Dict[str, Any]]], dry_run: bool = False) -> int:
+def send_follow_ups(
+    token: str,
+    requests: Iterable[Dict[str, Any]],
+    all_events: List[Dict[str, Any]],
+    events_index: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
+    reachability: Dict[str, Any],
+    dry_run: bool = False,
+) -> Tuple[int, bool]:
     count = 0
+    reach_changed = False
     now = datetime.now(timezone.utc)
     for request in requests:
         follow_up = request.get("follow_up")
@@ -335,29 +352,34 @@ def send_follow_ups(token: str, requests: Iterable[Dict[str, Any]], all_events: 
             max_attempts = int(follow_up.get("max_attempts", 1))
         except Exception:
             max_attempts = 1
-        for recipient_index, recipient in enumerate(normalize_recipients(request), 1):
-            lookup_key = recipient_key(recipient, recipient_index)
+        for recipient_index, recipient in enumerate(mc.normalize_recipients(request), 1):
+            lookup_key = mc.recipient_lookup_key(recipient, recipient_index)
             recipient_name = str(recipient.get("name") or "").strip() or None
             if reply_received(all_events, request_id, lookup_key, recipient_name=recipient_name):
                 continue
-            initial_sent = latest_sent_event(events_index, request_id, lookup_key, "initial", recipient_name=recipient_name)
+            initial_events = _key_events(events_index, request_id, lookup_key, "initial", recipient_name)
+            initial_sent = latest_sent_event(initial_events)
             if not initial_sent:
                 continue
-            initial_sent_at = parse_iso8601(initial_sent.get("sent_at"))
+            initial_sent_at = mc.parse_iso8601(initial_sent.get("sent_at"))
             if initial_sent_at is None:
                 continue
             due_at = initial_sent_at + timedelta(hours=delay_hours)
             if now < due_at:
                 continue
-            prior_follow_up_attempts = attempts_sent(events_index, request_id, lookup_key, "follow_up", recipient_name=recipient_name)
+            follow_events = _key_events(events_index, request_id, lookup_key, "follow_up", recipient_name)
+            if any(e.get("event") == "delivery_failed" and e.get("terminal") for e in follow_events):
+                continue
+            prior_follow_up_attempts = sum(1 for e in follow_events if e.get("event") == "delivery_result" and e.get("status") == "sent")
             if prior_follow_up_attempts >= max_attempts:
                 continue
+            chat_id = mc.usable_telegram_id(recipient)
             reply_to_message_id = initial_sent.get("platform_message_id")
             event_base = {
                 "request_id": request_id,
                 "task_id": str(request.get("task_id") or ""),
                 "recipient": recipient.get("name"),
-                "recipient_telegram_id": str(recipient.get("telegram_id") or "").strip() or None,
+                "recipient_telegram_id": chat_id,
                 "recipient_index": recipient_index,
                 "channel": str(request.get("channel") or "telegram"),
                 "phase": "follow_up",
@@ -365,44 +387,95 @@ def send_follow_ups(token: str, requests: Iterable[Dict[str, Any]], all_events: 
                 "follow_up_due_at": due_at.isoformat(),
             }
             if dry_run:
-                print(json.dumps({**event_base, "event": "delivery_result", "status": "dry_run_follow_up", "sent_at": utc_now(), "platform_message_id": None, "error": None}, ensure_ascii=False))
+                print(json.dumps({**event_base, "event": "delivery_result", "status": "dry_run_follow_up", "sent_at": mc.utc_now(), "platform_message_id": None, "error": None}, ensure_ascii=False))
                 count += 1
                 continue
+            if not chat_id:
+                continue
             try:
-                result = telegram_send_message(
-                    token,
-                    str(recipient.get("telegram_id") or recipient.get("telegram_username")),
-                    message,
-                    reply_to_message_id=reply_to_message_id,
-                )
-                event = {
-                    **event_base,
-                    "event": "delivery_result",
-                    "status": "sent",
-                    "sent_at": utc_now(),
-                    "platform_message_id": str(result.get("message_id")) if result.get("message_id") is not None else None,
-                    "error": None,
-                }
+                result = telegram_send_message(token, chat_id, message, reply_to_message_id=reply_to_message_id)
+                event = {**event_base, "event": "delivery_result", "status": "sent", "sent_at": mc.utc_now(), "platform_message_id": str(result.get("message_id")) if result.get("message_id") is not None else None, "error": None}
+                reach_changed |= mc.mark_reachability(reachability, chat_id, True)
             except Exception as exc:
-                event = {
-                    **event_base,
-                    "event": "delivery_failed",
-                    "status": "failed",
-                    "sent_at": utc_now(),
-                    "platform_message_id": None,
-                    "error": str(exc),
-                }
-            append_jsonl(EVENTS_PATH, event)
+                err = str(exc)
+                permanent = is_permanent_send_error(err)
+                terminal = permanent or (prior_follow_up_attempts + 1 >= max_attempts)
+                event = {**event_base, "event": "delivery_failed", "status": "failed", "sent_at": mc.utc_now(), "platform_message_id": None, "error": err, "permanent": permanent, "terminal": terminal}
+                if terminal:
+                    reach_changed |= mc.mark_reachability(reachability, chat_id, False, reason=err[:200])
+            mc.append_jsonl(EVENTS_PATH, event)
             events_index.setdefault((request_id, lookup_key, "follow_up"), []).append(event)
             all_events.append(event)
+            count += 1
+    return count, reach_changed
+
+
+def maybe_escalate(
+    requests: Iterable[Dict[str, Any]],
+    all_events: List[Dict[str, Any]],
+    events_index: Dict[Tuple[str, str, str], List[Dict[str, Any]]],
+    now: datetime,
+    dry_run: bool = False,
+) -> int:
+    """Emit a one-time `reply_overdue` event when a reply-tracked recipient has
+    not answered by the escalation deadline (default 48h after the initial send),
+    so the event-assistant can escalate to Farzan."""
+    count = 0
+    for request in requests:
+        reply_tracking = request.get("reply_tracking") or {}
+        if not reply_tracking.get("required"):
+            continue
+        request_id = str(request.get("request_id") or "").strip()
+        if not request_id:
+            continue
+        try:
+            escalate_hours = float(request.get("escalate_after_hours", DEFAULT_ESCALATE_AFTER_HOURS))
+        except Exception:
+            escalate_hours = float(DEFAULT_ESCALATE_AFTER_HOURS)
+        for recipient_index, recipient in enumerate(mc.normalize_recipients(request), 1):
+            lookup_key = mc.recipient_lookup_key(recipient, recipient_index)
+            recipient_name = str(recipient.get("name") or "").strip() or None
+            if reply_received(all_events, request_id, lookup_key, recipient_name=recipient_name):
+                continue
+            initial_events = _key_events(events_index, request_id, lookup_key, "initial", recipient_name)
+            initial_sent = latest_sent_event(initial_events)
+            if not initial_sent:
+                continue
+            initial_sent_at = mc.parse_iso8601(initial_sent.get("sent_at"))
+            if initial_sent_at is None or now < initial_sent_at + timedelta(hours=escalate_hours):
+                continue
+            if any(e.get("event") == "reply_overdue" for e in initial_events):
+                continue
+            event = {
+                "request_id": request_id,
+                "task_id": str(request.get("task_id") or ""),
+                "recipient": recipient.get("name"),
+                "recipient_telegram_id": mc.usable_telegram_id(recipient),
+                "recipient_index": recipient_index,
+                "channel": str(request.get("channel") or "telegram"),
+                "phase": "initial",
+                "event": "reply_overdue",
+                "escalate_after_hours": escalate_hours,
+                "initial_sent_at": initial_sent.get("sent_at"),
+                "noted_at": mc.utc_now(),
+            }
+            if dry_run:
+                print(json.dumps(event, ensure_ascii=False))
+            else:
+                mc.append_jsonl(EVENTS_PATH, event)
+                events_index.setdefault((request_id, lookup_key, "initial"), []).append(event)
             count += 1
     return count
 
 
-def run_once(token: str, dry_run: bool = False) -> Tuple[int, int]:
-    requests = read_jsonl(REQUESTS_PATH)
-    all_events = read_jsonl(EVENTS_PATH)
+def run_once(token: str, dry_run: bool = False) -> Tuple[int, int, int]:
+    requests = mc.read_jsonl(REQUESTS_PATH)
+    all_events = mc.read_jsonl(EVENTS_PATH)
     events_index = index_events(all_events)
+    reachability = mc.load_reachability()
+    control_state = load_control_state(mc.read_jsonl(CONTROL_PATH), mc.control_user_id())
+    now = datetime.now(timezone.utc)
+    reach_changed = False
 
     send_count = 0
     for request in requests:
@@ -428,21 +501,31 @@ def run_once(token: str, dry_run: bool = False) -> Tuple[int, int]:
                     "attempt": 1,
                     "event": "delivery_failed",
                     "status": "failed",
-                    "sent_at": utc_now(),
+                    "sent_at": mc.utc_now(),
                     "platform_message_id": None,
                     "error": "; ".join(errors),
+                    "terminal": True,
                 }
                 if dry_run:
                     print(json.dumps(event, ensure_ascii=False))
                 else:
-                    append_jsonl(EVENTS_PATH, event)
+                    mc.append_jsonl(EVENTS_PATH, event)
                     all_events.append(event)
                 send_count += 1
             continue
-        send_count += send_for_request(token, request, events_index, dry_run=dry_run)
+        control = control_state.get(request_id, {})
+        count, changed = send_for_request(token, request, events_index, reachability, control, now, dry_run=dry_run)
+        send_count += count
+        reach_changed |= changed
 
-    follow_up_count = send_follow_ups(token, requests, all_events, events_index, dry_run=dry_run)
-    return send_count, follow_up_count
+    follow_up_count, changed = send_follow_ups(token, requests, all_events, events_index, reachability, dry_run=dry_run)
+    reach_changed |= changed
+
+    escalation_count = maybe_escalate(requests, all_events, events_index, now, dry_run=dry_run)
+
+    if reach_changed and not dry_run:
+        mc.save_reachability(reachability)
+    return send_count, follow_up_count, escalation_count
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -456,37 +539,42 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not args.once and not args.poll:
         parser.error("choose --once or --poll")
 
-    token = load_token()
-    if not token and not args.dry_run:
-        print("TELEGRAM_BOT_TOKEN is not configured for the messenger profile", file=sys.stderr)
-        return 2
+    token = ""
+    if not args.dry_run:
+        try:
+            token = mc.messenger_bot_token()
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
 
     state = load_state()
 
-    def do_run() -> Tuple[int, int]:
-        send_count, follow_up_count = run_once(token or "", dry_run=args.dry_run)
-        state["last_run_at"] = utc_now()
+    def do_run() -> Tuple[int, int, int]:
+        send_count, follow_up_count, escalation_count = run_once(token, dry_run=args.dry_run)
+        state["last_run_at"] = mc.utc_now()
         state["last_send_count"] = send_count
         state["last_follow_up_count"] = follow_up_count
+        state["last_escalation_count"] = escalation_count
         if not args.dry_run:
             save_state(state)
-        return send_count, follow_up_count
+        return send_count, follow_up_count, escalation_count
 
     if args.once:
-        send_count, follow_up_count = do_run()
-        print(f"send_events={send_count} follow_up_events={follow_up_count}")
+        send_count, follow_up_count, escalation_count = do_run()
+        print(f"send_events={send_count} follow_up_events={follow_up_count} escalations={escalation_count}")
         return 0
 
     while True:
         try:
-            send_count, follow_up_count = do_run()
-            if send_count or follow_up_count:
-                print(f"{utc_now()} send_events={send_count} follow_up_events={follow_up_count}", flush=True)
+            send_count, follow_up_count, escalation_count = do_run()
+            if send_count or follow_up_count or escalation_count:
+                print(f"{mc.utc_now()} send_events={send_count} follow_up_events={follow_up_count} escalations={escalation_count}", flush=True)
         except KeyboardInterrupt:
             return 130
         except Exception as exc:
-            print(f"{utc_now()} dispatcher_error={exc}", file=sys.stderr, flush=True)
+            print(f"{mc.utc_now()} dispatcher_error={exc}", file=sys.stderr, flush=True)
             time.sleep(max(args.interval, 5.0))
+            continue
         time.sleep(args.interval)
 
 

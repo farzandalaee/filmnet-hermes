@@ -24,8 +24,12 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 ROOT = Path("/Users/farzan/filmnet-hermes")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
 from state import task_store  # noqa: E402
+import messenger_common as mc  # noqa: E402
 
 PROFILE_ENV = Path("/Users/farzan/.hermes/profiles/messenger/.env")
 GLOBAL_ENV = Path("/Users/farzan/.hermes/.env")
@@ -79,9 +83,18 @@ def load_env() -> Dict[str, str]:
     return env
 
 
-def load_token() -> Optional[str]:
-    env = load_env()
-    return env.get("TELEGRAM_BOT_TOKEN")
+def load_notify_token() -> Optional[str]:
+    # Notify Farzan on the control bot he actually talks to, so his replies
+    # (e.g. STOP/commands) land on the control channel rather than in the
+    # team-reply intake stream. Fall back to the messenger bot only if the
+    # control token is unavailable, to avoid losing notifications entirely.
+    token = mc.control_bot_token()
+    if token:
+        return token
+    try:
+        return mc.messenger_bot_token()
+    except RuntimeError:
+        return None
 
 
 def load_farzan_chat_id() -> Optional[str]:
@@ -115,19 +128,7 @@ def load_farzan_chat_id() -> Optional[str]:
 
 
 def read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError as exc:
-                raise SystemExit(f"Invalid JSON in {path}:{line_no}: {exc}") from exc
-    return rows
+    return mc.read_jsonl(path)
 
 
 def load_state(path: Path = STATE_PATH) -> Dict[str, Any]:
@@ -147,11 +148,11 @@ def load_state(path: Path = STATE_PATH) -> Dict[str, Any]:
 
 
 def save_state(state: Dict[str, Any], path: Path = STATE_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    state["processed_event_ids"] = list(dict.fromkeys(state.get("processed_event_ids", [])))[-2000:]
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    # No fixed cap: process_once bounds processed_event_ids to ids still present
+    # in the events log, so the set tracks the (rotated) file size and never
+    # drops an id that is still on disk (which would cause a re-notification).
+    state["processed_event_ids"] = list(dict.fromkeys(state.get("processed_event_ids", [])))
+    mc.save_json_state(path, state)
 
 
 def normalize_recipients(request: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -222,6 +223,9 @@ def recipient_status_summary(request: Dict[str, Any], events: List[Dict[str, Any
                 f"    - {recipient.get('name')}: replied at {(last.get('received_at') or '[time missing]')} | {truncate(str(last.get('raw_reply') or ''))}"
             )
             continue
+        if any(e.get("event") == "send_canceled" for e in related):
+            lines.append(f"    - {recipient.get('name')}: send canceled before delivery")
+            continue
         failed = [e for e in related if e.get("event") == "delivery_failed"]
         if failed:
             failed.sort(key=lambda e: e.get("sent_at") or "")
@@ -230,19 +234,20 @@ def recipient_status_summary(request: Dict[str, Any], events: List[Dict[str, Any
                 f"    - {recipient.get('name')}: delivery failed | {truncate(str(last.get('error') or 'unknown error'))}"
             )
             continue
+        overdue_note = " | escalated (no reply)" if any(e.get("event") == "reply_overdue" for e in related) else ""
         follow_ups = [e for e in related if e.get("event") == "delivery_result" and e.get("status") == "sent" and str(e.get("phase") or "") == "follow_up"]
         initials = [e for e in related if e.get("event") == "delivery_result" and e.get("status") == "sent" and str(e.get("phase") or "initial") == "initial"]
         if follow_ups:
             follow_ups.sort(key=lambda e: e.get("sent_at") or "")
             last = follow_ups[-1]
             lines.append(
-                f"    - {recipient.get('name')}: waiting for reply | follow-up sent at {(last.get('sent_at') or '[time missing]')}"
+                f"    - {recipient.get('name')}: waiting for reply | follow-up sent at {(last.get('sent_at') or '[time missing]')}{overdue_note}"
             )
         elif initials:
             initials.sort(key=lambda e: e.get("sent_at") or "")
             last = initials[-1]
             lines.append(
-                f"    - {recipient.get('name')}: waiting for reply | sent at {(last.get('sent_at') or '[time missing]')}"
+                f"    - {recipient.get('name')}: waiting for reply | sent at {(last.get('sent_at') or '[time missing]')}{overdue_note}"
             )
         else:
             lines.append(f"    - {recipient.get('name')}: pending send")
@@ -347,11 +352,16 @@ def notify_text_for_event(event: Dict[str, Any]) -> Optional[str]:
             f"Message: {truncate(str(event.get('raw_reply') or ''), 220)}"
         )
     if event_type == "delivery_failed":
+        if not event.get("terminal"):
+            return None  # transient retry; only the final/terminal failure notifies
+        reachable_note = ""
+        if event.get("permanent"):
+            reachable_note = "\n(Recipient unreachable — likely has not started the messenger bot.)"
         return (
             f"FilmNet Messenger delivery failed\n"
             f"Task: {event.get('task_id') or '[no task]'}\n"
             f"Recipient: {event.get('recipient') or '[unknown]'}\n"
-            f"Reason: {truncate(str(event.get('error') or 'unknown error'), 220)}"
+            f"Reason: {truncate(str(event.get('error') or 'unknown error'), 220)}{reachable_note}"
         )
     if event_type == "unmatched_inbound_message":
         sender = event.get("sender") or {}
@@ -360,6 +370,20 @@ def notify_text_for_event(event: Dict[str, Any]) -> Optional[str]:
             f"FilmNet Messenger unmatched inbound\n"
             f"From: {sender_name}\n"
             f"Message: {truncate(str(event.get('raw_reply') or ''), 220)}"
+        )
+    if event_type == "send_canceled":
+        return (
+            f"FilmNet Messenger send canceled\n"
+            f"Task: {event.get('task_id') or '[no task]'}\n"
+            f"Recipient: {event.get('recipient') or '[unknown]'}\n"
+            f"The queued message was canceled before sending."
+        )
+    if event_type == "reply_overdue":
+        return (
+            f"FilmNet Messenger — no reply\n"
+            f"Task: {event.get('task_id') or '[no task]'}\n"
+            f"Recipient: {event.get('recipient') or '[unknown]'}\n"
+            f"No reply after the follow-up window. Needs your decision on the next step."
         )
     return None
 
@@ -397,6 +421,7 @@ def process_once(dry_run: bool = False, notify: bool = True) -> Tuple[List[str],
     updated_task_ids = update_task_file(events, dry_run=dry_run)
 
     if not state.get("initialized"):
+        print(f"{utc_now()} initializing assistant cursor; marking {len(event_ids)} existing event(s) as seen without notifying", file=sys.stderr, flush=True)
         state["initialized"] = True
         state["processed_event_ids"] = event_ids
         state["last_run_at"] = utc_now()
@@ -412,21 +437,29 @@ def process_once(dry_run: bool = False, notify: bool = True) -> Tuple[List[str],
         new_events.append((event_id, event))
 
     notifications_sent = 0
-    token = load_token() if notify and not dry_run else None
+    token = load_notify_token() if notify and not dry_run else None
     chat_id = load_farzan_chat_id() if notify and not dry_run else None
     for event_id, event in new_events:
-        text = notify_text_for_event(event)
-        if text and notify:
-            if dry_run:
-                print(json.dumps({"notify_event_id": event_id, "text": text}, ensure_ascii=False))
-                notifications_sent += 1
-            else:
-                if token and chat_id:
+        text = notify_text_for_event(event) if notify else None
+        if text and dry_run:
+            print(json.dumps({"notify_event_id": event_id, "text": text}, ensure_ascii=False))
+            notifications_sent += 1
+        elif text and not dry_run:
+            if token and chat_id:
+                try:
                     telegram_send_message(token, chat_id, text)
                     notifications_sent += 1
+                except Exception as exc:
+                    # Leave this event unprocessed so it retries next loop instead
+                    # of being silently dropped or re-notifying the whole batch.
+                    print(f"{utc_now()} notify_failed event_id={event_id}: {exc}", file=sys.stderr, flush=True)
+                    continue
         processed.add(event_id)
 
-    state["processed_event_ids"] = list(processed)
+    # Bound the processed set to ids still present in the events log so it tracks
+    # the (rotated) file and never re-notifies an event that is still on disk.
+    current_ids = set(event_ids)
+    state["processed_event_ids"] = sorted(processed & current_ids)
     state["last_run_at"] = utc_now()
     if not dry_run:
         save_state(state)
@@ -446,8 +479,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("choose --once or --poll")
 
     if not args.dry_run and not args.no_notify:
-        if not load_token():
-            print("TELEGRAM_BOT_TOKEN is not configured for the messenger profile", file=sys.stderr)
+        if not load_notify_token():
+            print("No control/messenger bot token available for notifications", file=sys.stderr)
             return 2
         if not load_farzan_chat_id():
             print("Could not determine Farzan Telegram chat id", file=sys.stderr)
@@ -476,6 +509,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         except Exception as exc:
             print(f"{utc_now()} assistant_event_error={exc}", file=sys.stderr, flush=True)
             time.sleep(max(args.interval, 5.0))
+            continue
         time.sleep(args.interval)
 
 

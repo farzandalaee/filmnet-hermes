@@ -14,6 +14,7 @@ inbox/*.jsonl
 inbox/*-state.json
 inbox/messenger-*.json
 inbox/messenger-*.jsonl
+inbox/telegram-reachability.json
 
 # Claude Code bridge runtime queues
 inbox/claude-code-bridge/*.jsonl
