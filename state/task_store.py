@@ -4,9 +4,19 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    """Write via temp file + atomic rename so a crash mid-write cannot truncate
+    or corrupt the existing file and readers never see a half-written file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
 
 TASK_ID_PATTERN = r"FN-\d{4}-\d{4}-\d{3}"
 TASK_HEADING_RE = re.compile(rf"^##\s+({TASK_ID_PATTERN})\s*$", re.MULTILINE)
@@ -128,7 +138,7 @@ def write_task_records(task_dir: Path, records: Iterable[TaskRecord]) -> Path:
         normalized = task_to_record(record_to_task(record))
         by_id[normalized["task_id"]] = normalized
     lines = [json.dumps(by_id[tid], ensure_ascii=False, separators=(",", ":")) for tid in sorted(by_id)]
-    jsonl_path.write_text(("\n".join(lines) + "\n") if lines else "", encoding="utf-8")
+    _atomic_write_text(jsonl_path, ("\n".join(lines) + "\n") if lines else "")
     return jsonl_path
 
 
@@ -159,11 +169,10 @@ def read_task(task_dir: Path, task_id_value: str) -> str:
 
 
 def write_index(index_path: Path, heading: str, tasks: Iterable[str]) -> None:
-    index_path.parent.mkdir(parents=True, exist_ok=True)
     lines = [f"# {heading}", ""]
     for task in sorted(tasks, key=task_id):
         lines.append(f"- {task_id(task)} — {task_title(task)}")
-    index_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    _atomic_write_text(index_path, "\n".join(lines).rstrip() + "\n")
 
 
 def migrate_legacy_file(legacy_path: Path, task_dir: Path, index_path: Path, heading: str) -> int:

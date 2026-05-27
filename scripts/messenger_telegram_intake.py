@@ -1,107 +1,47 @@
 #!/usr/bin/env python3
 """Telegram reply-intake adapter for FilmNet Messenger.
 
-This script polls Telegram Bot API updates and writes inbound human replies as
-append-only JSONL events to inbox/messenger-events.jsonl. It is intentionally
-not a Hermes gateway session: recipient text is never passed to an LLM as a
-command, so team members can reply without being granted agent-control access.
+Polls Telegram Bot API updates and writes inbound human replies as append-only
+JSONL events to inbox/messenger-events.jsonl. It is intentionally NOT a Hermes
+gateway session: recipient text is never passed to an LLM as a command, so team
+members can reply without being granted agent-control access.
 
-Secrets are read from /Users/farzan/.hermes/profiles/messenger/.env and never
-printed.
+Secrets are read from the messenger bot env and never printed.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-ROOT = Path("/Users/farzan/filmnet-hermes")
-PROFILE_ENV = Path("/Users/farzan/.hermes/profiles/messenger/.env")
-GLOBAL_ENV = Path("/Users/farzan/.hermes/.env")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import messenger_common as mc  # noqa: E402
+
+ROOT = mc.ROOT
 TEAM_CONTACTS = ROOT / "resources/filmnet/team-contacts.md"
 REQUESTS_PATH = ROOT / "inbox/messenger-send-requests.jsonl"
 EVENTS_PATH = ROOT / "inbox/messenger-events.jsonl"
 STATE_PATH = ROOT / "inbox/messenger-telegram-intake-state.json"
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def load_env_file(path: Path) -> Dict[str, str]:
-    env: Dict[str, str] = {}
-    if not path.exists():
-        return env
-    for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        value = value.strip().strip('"').strip("'")
-        env[key.strip()] = value
-    return env
-
-
-def load_token() -> Optional[str]:
-    env: Dict[str, str] = {}
-    env.update(load_env_file(GLOBAL_ENV))
-    env.update(load_env_file(PROFILE_ENV))
-    return os.environ.get("TELEGRAM_BOT_TOKEN") or env.get("TELEGRAM_BOT_TOKEN")
-
-
-def read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError as exc:
-                raise SystemExit(f"Invalid JSON in {path}:{line_no}: {exc}") from exc
-    return rows
-
-
-def append_jsonl(path: Path, obj: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(obj, ensure_ascii=False, sort_keys=False) + "\n")
-        f.flush()
-        os.fsync(f.fileno())
-
-
-def load_state(path: Path = STATE_PATH) -> Dict[str, Any]:
-    if not path.exists():
-        return {"last_update_id": None, "processed_update_ids": []}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {"last_update_id": None, "processed_update_ids": []}
-    if "processed_update_ids" not in data or not isinstance(data["processed_update_ids"], list):
+def load_state() -> Dict[str, Any]:
+    data = mc.load_json_state(STATE_PATH, {"last_update_id": None, "processed_update_ids": []})
+    if not isinstance(data.get("processed_update_ids"), list):
         data["processed_update_ids"] = []
     return data
 
 
-def save_state(state: Dict[str, Any], path: Path = STATE_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    # Keep the de-dupe list bounded. Telegram offset is the primary cursor.
+def save_state(state: Dict[str, Any]) -> None:
     state["processed_update_ids"] = list(dict.fromkeys(state.get("processed_update_ids", [])))[-500:]
-    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    mc.save_json_state(STATE_PATH, state)
 
 
 def contact_key(raw_key: str) -> str:
@@ -177,26 +117,34 @@ def parse_team_contacts(path: Path = TEAM_CONTACTS) -> Dict[str, Dict[str, str]]
     return contacts
 
 
-def normalize_recipients(request: Dict[str, Any]) -> List[Dict[str, Any]]:
-    recipients = request.get("recipients")
-    if isinstance(recipients, list) and recipients:
-        return [r for r in recipients if isinstance(r, dict)]
-    recipient = request.get("recipient")
-    if isinstance(recipient, dict) and recipient:
-        return [recipient]
-    return []
+def answered_keys(events: Iterable[Dict[str, Any]]) -> Set[Tuple[str, str]]:
+    """(request_id, telegram_id) pairs that already have a reply."""
+    answered: Set[Tuple[str, str]] = set()
+    for event in events:
+        if event.get("event") != "reply_received":
+            continue
+        request_id = str(event.get("request_id") or "").strip()
+        sender_id = str((event.get("sender") or {}).get("telegram_id") or "").strip()
+        if not sender_id:
+            sender_id = str(event.get("recipient_telegram_id") or "").strip()
+        if request_id and sender_id:
+            answered.add((request_id, sender_id))
+    return answered
 
 
-def sent_request_index(requests_path: Path = REQUESTS_PATH, events_path: Path = EVENTS_PATH) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
-    """Build indexes for matching replies to the latest sent request.
+def sent_request_index() -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
+    """Build indexes for matching replies to a sent request.
 
     Returns:
-      by_telegram_id: latest reply-tracked send request per recipient Telegram ID
+      by_telegram_id: latest reply-tracked, still-unanswered send request per
+                      recipient Telegram ID (so a person's next message does not
+                      keep matching a request they already answered)
       by_platform_message_id: send request by Telegram sent message id
     """
-    requests = read_jsonl(requests_path)
-    events = read_jsonl(events_path)
+    requests = mc.read_jsonl(REQUESTS_PATH)
+    events = mc.read_jsonl(EVENTS_PATH)
     request_by_id = {r.get("request_id"): r for r in requests if r.get("request_id")}
+    answered = answered_keys(events)
 
     by_telegram_id: Dict[str, Dict[str, Any]] = {}
     by_platform_message_id: Dict[str, Dict[str, Any]] = {}
@@ -213,13 +161,14 @@ def sent_request_index(requests_path: Path = REQUESTS_PATH, events_path: Path = 
         if not telegram_id:
             recipient_index = event.get("recipient_index")
             if isinstance(recipient_index, int):
-                recipients = normalize_recipients(req)
+                recipients = mc.normalize_recipients(req)
                 if 1 <= recipient_index <= len(recipients):
                     telegram_id = str(recipients[recipient_index - 1].get("telegram_id") or "").strip()
             if not telegram_id:
                 telegram_id = str(req.get("recipient", {}).get("telegram_id") or "").strip()
         if telegram_id and "to be filled" not in telegram_id.lower():
-            by_telegram_id[telegram_id] = req
+            if (str(request_id), telegram_id) not in answered:
+                by_telegram_id[telegram_id] = req  # latest unanswered wins
         platform_message_id = event.get("platform_message_id")
         if platform_message_id is not None:
             by_platform_message_id[str(platform_message_id)] = req
@@ -267,8 +216,10 @@ def make_event(update: Dict[str, Any], contacts: Dict[str, Dict[str, str]], by_u
 
     text = message.get("text") or message.get("caption") or ""
     message_id = message.get("message_id")
+    chat_id = chat.get("id")
     reply_to = message.get("reply_to_message") or {}
     reply_to_message_id = reply_to.get("message_id")
+    is_edit = "edited_message" in update
 
     contact = contacts.get(sender_id)
     matched_request = None
@@ -278,7 +229,7 @@ def make_event(update: Dict[str, Any], contacts: Dict[str, Dict[str, str]], by_u
         match_reason = "reply_to_platform_message_id"
     elif sender_id in by_user:
         matched_request = by_user[sender_id]
-        match_reason = "latest_reply_tracked_request_for_sender"
+        match_reason = "latest_unanswered_reply_tracked_request_for_sender"
 
     username = sender.get("username")
     sender_meta = {
@@ -286,24 +237,32 @@ def make_event(update: Dict[str, Any], contacts: Dict[str, Dict[str, str]], by_u
         "telegram_username": ("@" + str(username)) if username else None,
         "first_name": sender.get("first_name"),
         "last_name": sender.get("last_name"),
-        "chat_id": str(chat.get("id")) if chat.get("id") is not None else None,
+        "chat_id": str(chat_id) if chat_id is not None else None,
         "chat_type": chat.get("type"),
         "known_contact": bool(contact),
         "contact_name": contact.get("name") if contact else None,
         "contact_name_fa": contact.get("name_fa") if contact else None,
     }
 
+    # Stable per-message id so an edited reply dedupes against the original
+    # instead of generating a second reply_received notification.
+    if chat_id is not None and message_id is not None:
+        event_id = f"tgmsg-{chat_id}-{message_id}"
+    else:
+        event_id = f"tgu-{update.get('update_id')}-{message_id}"
+
     base = {
-        "event_id": f"tgu-{update.get('update_id')}-{message_id}",
+        "event_id": event_id,
         "request_id": matched_request.get("request_id") if matched_request else None,
         "task_id": matched_request.get("task_id") if matched_request else None,
         "recipient": (contact.get("name") if contact else None) or (matched_request.get("recipient", {}).get("name") if matched_request else None),
         "recipient_telegram_id": sender_id if matched_request else None,
         "channel": "telegram",
-        "received_at": utc_now(),
+        "received_at": mc.utc_now(),
         "platform_update_id": update.get("update_id"),
         "platform_message_id": str(message_id) if message_id is not None else None,
         "reply_to_platform_message_id": str(reply_to_message_id) if reply_to_message_id is not None else None,
+        "is_edit": is_edit,
         "sender": sender_meta,
         "raw_reply": text,
         "needs_assistant_action": True,
@@ -325,7 +284,7 @@ def make_event(update: Dict[str, Any], contacts: Dict[str, Dict[str, str]], by_u
     return base
 
 
-def process_updates(updates: Iterable[Dict[str, Any]], state: Dict[str, Any], events_path: Path = EVENTS_PATH, dry_run: bool = False) -> int:
+def process_updates(updates: Iterable[Dict[str, Any]], state: Dict[str, Any], dry_run: bool = False) -> int:
     contacts = parse_team_contacts()
     by_user, by_reply_msg = sent_request_index()
     processed = set(state.get("processed_update_ids") or [])
@@ -341,7 +300,7 @@ def process_updates(updates: Iterable[Dict[str, Any]], state: Dict[str, Any], ev
             if dry_run:
                 print(json.dumps(event, ensure_ascii=False))
             else:
-                append_jsonl(events_path, event)
+                mc.append_jsonl(EVENTS_PATH, event)
             count += 1
         processed.add(update_id)
         state["last_update_id"] = max(int(update_id), int(state.get("last_update_id") or update_id))
@@ -373,9 +332,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"processed_events={count}")
         return 0
 
-    token = load_token()
-    if not token:
-        print("TELEGRAM_BOT_TOKEN is not configured for the messenger profile", file=sys.stderr)
+    try:
+        token = mc.messenger_bot_token()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
 
     def run_once() -> int:
@@ -397,13 +357,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         try:
             count = run_once()
             if count:
-                print(f"{utc_now()} processed_events={count}", flush=True)
+                print(f"{mc.utc_now()} processed_events={count}", flush=True)
         except KeyboardInterrupt:
             return 130
         except Exception as exc:
             # Never include token-bearing URLs in errors.
-            print(f"{utc_now()} intake_error={exc}", file=sys.stderr, flush=True)
+            print(f"{mc.utc_now()} intake_error={exc}", file=sys.stderr, flush=True)
             time.sleep(max(args.interval, 5.0))
+            continue
         time.sleep(args.interval)
 
 
