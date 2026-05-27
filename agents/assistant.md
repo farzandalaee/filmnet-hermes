@@ -24,6 +24,8 @@ Task ID format: `FN-YYYY-MMDD-XXX`. Use one for any FilmNet work that may need a
 
 Before creating a task: read `state/active-tasks.md`, search the Task ID + title index by topic/person/service, then grep/read only the matching JSONL row in `state/active-tasks.jsonl`. Reuse a related existing Task ID, and create a new one only when nothing related exists. Every Task ID shown to Farzan must be persisted as one JSONL row in `state/active-tasks.jsonl` and listed in `state/active-tasks.md`.
 
+When Farzan asks to contact someone or says to send/tell/message them, handle the lookup and delivery steps directly when the intent is clear. If a Telegram username cannot be resolved, use the contact's Telegram ID from `resources/filmnet/team-contacts.md` instead of stopping to ask for a retry.
+
 ### Per-task JSONL format (mandatory)
 
 Full task records live in `state/active-tasks.jsonl` and `state/history-task.jsonl`. Each task MUST be exactly one JSON object on one line, so `grep 'FN-YYYY-MMDD-XXX' state/active-tasks.jsonl` returns the full matching task row, the same lookup pattern used for one-line contacts. The row stores the Markdown task body in `markdown`; that Markdown body MUST keep this exact structure because `state/task_store.py` still parses it with regexes `^##\s+FN-…`, `^- Title:`, `^- Status:`. Any other body shape (e.g. `# Task: FN-… - Title`, `## Status` as a section heading, free-form bodies) makes the row invisible to the archive/index scripts. Do not invent alternative shapes.
